@@ -351,7 +351,7 @@ ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "dbSNP" && $$9 == "genome" { print }' > $@
 
-${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.bed
+${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.bed ${gafDir}/gene.genome.gaf
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeDbSnp.py ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP.raw.gaf
 	rm ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed
@@ -378,7 +378,7 @@ ${testInput}/MAprobe.genome.3.0.gaf:	${gafDir}/MAprobe.genome.gaf ${testDir}/tes
 	cat ${testDir}/testMaProbe.txt \
 	| awk '{ print "grep", $$1, "${gafDir}/MAprobe.genome.gaf"}' |bash > $@
 
-${gafDir}/MAprobe.genome.gaf:	${scratchDir}/MAprobe.genome.raw.gaf
+${gafDir}/MAprobe.genome.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/gene.genome.gaf
 	cat $< |sort -k2,2 | scripts/combineFeatures.py > $@
 
 ${scratchDir}/MAprobe.genome.raw.gaf:	${inputDir}/MAprobe.genome.bed
@@ -473,10 +473,10 @@ ${scratchDir}/MAprobe.transcript.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "MAprobe" && $$9 == "transcript" { print }' > $@
 
-${scratchDir}/AffySNP.genome.gaf21.gaf:
+${scratchDir}/AffySNP.genome.gaf21.gaf: 
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "AffySNP" && $$9 == "genome" { print }' > $@
 
-${gafDir}/AffySNP.genome.gaf:	${scratchDir}/AffySNP.genome.gaf21.gaf
+${gafDir}/AffySNP.genome.gaf:	${scratchDir}/AffySNP.genome.gaf21.gaf ${gafDir}/gene.genome.gaf
 	cp $< $@
 
