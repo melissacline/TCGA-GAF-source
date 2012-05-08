@@ -57,28 +57,57 @@ struct hash *transcriptsThisChromAndStrand(struct sqlConnection *conn, char *tra
 char *geneNameThisCluster(struct sqlConnection *conn, int clusterId)
 {
     struct dyString *symbolBuf = dyStringNew(80);
-    struct dyString *query = dyStringNew(256);
-    struct sqlResult *sr;
+    struct dyString *geneSymbolQuery, *entrezIdQuery,
+	*symbolCountQuery, *symbolLookupQuery;
+    struct sqlResult *geneSymbolResult, *entrezIdResult, *symbolLookupResult;
     char *geneSymbol, *entrezGeneId, *geneName, **row;
 
-    dyStringPrintf(query, "select kx.geneSymbol from knownCanonical kc, kgXref kx where kc.transcript = kx.kgID and kc.clusterId = '%d'", clusterId);
-    sr = sqlMustGetResult(conn, query->string);
-    row = sqlNextRow(sr);
+    /* Start by getting the gene symbol from the knownGenes tables.  This should
+     * be the right symbol most of the time */
+    geneSymbolQuery = dyStringNew(256);
+    dyStringPrintf(geneSymbolQuery, "select kx.geneSymbol from knownCanonical kc, kgXref kx where kc.transcript = kx.kgID and kc.clusterId = '%d'", clusterId);
+    geneSymbolResult = sqlMustGetResult(conn, geneSymbolQuery->string);
+    row = sqlNextRow(geneSymbolResult);
     geneSymbol = replaceChars(row[0], " ", "_");
-    sqlFreeResult(&sr);
-    dyStringFree(&query);
-    query = dyStringNew(256);
+    sqlFreeResult(&geneSymbolResult);
+    dyStringFree(&geneSymbolQuery);
+    /* Look up the entrez gene ID from the hgnc table, using the contents of 
+     * geneSymbol to access the symbol field.  If this works, then we have the
+     * entrez ID, AND geneSymbol contains the HUGO-approved gene symbol */
+    entrezIdQuery = dyStringNew(256);
     entrezGeneId = cloneString("?");
-    dyStringPrintf(query, "select entrezId from hgnc where symbol='%s'", geneSymbol);
-    sr = sqlGetResult(conn, query->string);
-    if ((row = sqlNextRow(sr)) != NULL) {
+    dyStringPrintf(entrezIdQuery, "select entrezId from hgnc where symbol='%s'", geneSymbol);
+    entrezIdResult = sqlGetResult(conn, entrezIdQuery->string);
+    if ((row = sqlNextRow(entrezIdResult)) != NULL) {
 	if (strcmp(row[0], "") != 0) {
 	    freeMem(entrezGeneId);
 	    entrezGeneId = cloneString(row[0]);
+	    sqlFreeResult(&entrezIdResult);
+	} else {
+	    /* Whatever is in geneSymbol is not a symbol in the hgnc table.  See
+	     * if it hits anything in the synonym column */
+	    sqlFreeResult(&entrezIdResult);
+	    symbolCountQuery = dyStringNew(256);
+	    dyStringPrintf(symbolCountQuery, "hgnc where synonyms = '%s' or synonyms like '%s,%%' or synonyms like '%% %s,%%' or synonyms like '%%, %s'", geneSymbol,
+			   geneSymbol, geneSymbol, geneSymbol);
+	    if (sqlRowCount(conn, symbolCountQuery->string) == 1) {
+		symbolLookupQuery = dyStringNew(256);
+		dyStringPrintf(symbolLookupQuery, "select symbol, entrezId from hgnc where synonyms = '%s' or synonyms like '%s,%%' or synonyms like '%% %s,%%' or synonyms like '%%, %s'", 
+			       geneSymbol, geneSymbol, geneSymbol, geneSymbol);
+		symbolLookupResult = sqlGetResult(conn, symbolLookupQuery->string);
+		row = sqlNextRow(symbolLookupResult);
+		assert(row != NULL);
+		freeMem(geneSymbol);
+		geneSymbol = cloneString(row[0]);
+		freeMem(entrezGeneId);
+		entrezGeneId = cloneString(row[1]);
+		dyStringFree(&symbolLookupQuery);
+		sqlFreeResult(&symbolLookupResult);
+	    }
+	    dyStringFree(&symbolCountQuery);
 	}
     }
-    sqlFreeResult(&sr);
-    dyStringFree(&query);
+    dyStringFree(&entrezIdQuery);
     symbolBuf = dyStringCreate("%s|%s", geneSymbol, entrezGeneId);
     geneName = dyStringCannibalize(&symbolBuf);
     freeMem(geneSymbol);
