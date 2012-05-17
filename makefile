@@ -23,8 +23,7 @@ miRnaSetContents = ${gafDir}/pre-miRNA.genome.gaf ${gafDir}/miRNA.genome.gaf \
 all:	${gafDir}/geneSet.gaf \
 	${outputBedDir}/gene.genome.bb ${outputBedDir}/compositeExon.genome.bb \
 	${outputBedDir}/componentExon.genome.bb ${outputBedDir}/transcript.genome.bb \
-	${outputBedDir}/junction.genome.bb ${outputBedDir}/maProbe.genome.bb \
-	${outputBedDir}/affySnp.genome.bb ${outputBedDir}/dbSNP.genome.bb \
+	${outputBedDir}/junction.genome.bb \
 	${testOutput}/transcript.genome.diff ${testOutput}/gene.genome.diff \
 	${testOutput}/transcript.gene.diff ${gafDir}/transcript.gene.gaf \
 	${testOutput}/compositeExon.transcript.diff \
@@ -34,8 +33,9 @@ all:	${gafDir}/geneSet.gaf \
 	${outputBedDir}/pre-miRNA.genome.bb ${outputBedDir}/miRNA.genome.bb \
         ${testOutput}/pre-miRNA.genome.diff ${testOutput}/miRNA.genome.diff \
         ${testOutput}/miRNA.pre-miRNA.diff \
+	${outputBedDir}/affySnp.genome.bb ${outputBedDir}/dbSNP.genome.bb \
 	${outputBedDir}/dbSNP.genome.bb ${testOutput}/dbSNP.genome.diff \
-	${outputBedDir}/MAprobe.genome.bb ${testOutput}/MAprobe.genome.diff \
+        ${outputBedDir}/MAprobe.genome.bb ${testOutput}/MAprobe.genome.diff \
         ${outputBedDir}/AffySNP.genome.bb
 
 ${gafDir}/geneSet.gaf:	${geneSetContents}
@@ -206,9 +206,9 @@ ${gafDir}/junction.transcript.gaf: ${gafDir}/junction.genome.gaf ${gafDir}/trans
 	scripts/junctionToTranscript.py ${gafDir}/junction.genome.gaf ${gafDir}/transcript.genome.gaf > $@
 
 
-${testDir}/testGenes.txt ${testDir}/testTranscripts.txt: scripts/sql/geneTestSet.sql
+${testDir}/testGenes.txt ${testDir}/testTranscripts.txt: sql/geneTestSet.sql
 	rm ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt
-	hgsql hg19  scripts/sql/testGenes.sql
+	hgsql hg19 < scripts/sql/testGenes.sql
 
 ${outputBedDir}/%.bb:	${gafDir}/%.gaf
 	scripts/gafToBed.py $< |sort -k1,1 -k2,2n > ${scratchDir}/$*.postGaf.GRCh37-lite.bed
@@ -243,13 +243,18 @@ ${inputDir}/componentExon.genome.bed ${inputDir}/compositeExon.genome.bed ${inpu
 ${gafDir}/miRnaSet.gaf:	${miRnaSetContents}
 	cat ${miRnaSetContents} | awk '{$$1 = NR; print}' > $@
 
+#
+# When comparing the new pre-miRNA data to the old, don't look at the strand because
+# miRBase has changed the strands for many miRNAs.  Also don't look at the gene name
+# or gene locus field, because no gene assignment was made in a lot of the old
+# miRBase records.
 ${testOutput}/pre-miRNA.genome.diff:	${testInput}/pre-miRNA.genome.2.1.gaf ${testInput}/pre-miRNA.genome.3.0.gaf 
 	cat ${testInput}/pre-miRNA.genome.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
-	> ${scratchDir}/pre-miRNA.genome.2.1.subset
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15}' \
+	| sed 's/:+//' |sed 's/:-//' > ${scratchDir}/pre-miRNA.genome.2.1.subset
 	cat ${testInput}/pre-miRNA.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
-	> ${scratchDir}/pre-miRNA.genome.3.0.subset
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15}' \
+	| sed 's/:+//' |sed 's/:-//' > ${scratchDir}/pre-miRNA.genome.3.0.subset
 	diff ${scratchDir}/pre-miRNA.genome.2.1.subset ${scratchDir}/pre-miRNA.genome.3.0.subset > $@
 
 ${testInput}/pre-miRNA.genome.2.1.gaf:	${testDir}/testPreMiRna.txt ${scratchDir}/pre-miRNA.genome.gaf21.gaf
@@ -268,12 +273,20 @@ ${gafDir}/pre-miRNA.genome.gaf:	${inputDir}/pre-miRNA.genome.bed
 	liftOver ${inputDir}/pre-miRNA.genome.bed data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makePreMiRna.py ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed data/miRNA.dat > $@
 
-${inputDir}/pre-miRNA.genome.psl:	${inputDir}/allPreMiRna.psl ${inputDir}/miRNA.genome.bed
-	scripts/findOverlappingPslGivenBed.py ${inputDir}/allPreMiRna.psl ${inputDir}/miRNA.genome.bed > $@
+${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
+	scripts/gffToBed.py -t miRNA_primary_transcript -n accession_number $< > $@
 
-${inputDir}/allPreMiRna.psl:	data/hairpin.fa
-	blat -stepSize=3 -minMatch=1 -tileSize=6 \
-	/hive/data/genomes/hg19/hg19.2bit data/hairpin.fa ${inputDir}/allPreMiRnas.genome.psl
+#
+# The list of test pre-miRNAs is created as follows:
+#
+# awk '{ split($2, tokens, "|"); print tokens[1]}' < ../gaf/pre-miRNA.genome.gaf \
+#   | sort > preMiRna.old.txt
+# awk '{ split($2, tokens, "|"); print tokens[1]}' \
+#   < ../scratch/pre-miRNA.genome.gaf21.gaf |sort > preMiRna.new.txt
+# join preMiRna.old.txt preMiRna.new.txt |wc
+#    889     889   11492
+# join preMiRna.old.txt preMiRna.new.txt |head -250 > testPreMiRna.txt
+
 
 ${testOutput}/miRNA.genome.diff:	${testInput}/miRNA.genome.2.1.gaf ${testInput}/miRNA.genome.3.0.gaf 
 	cat ${testInput}/miRNA.genome.2.1.gaf \
@@ -297,10 +310,14 @@ ${scratchDir}/miRNA.genome.gaf21.gaf:
 	| awk -F'\t' '$$3 == "miRNA" && $$9 == "genome" { print }' > $@
 
 
-${gafDir}/miRNA.genome.gaf:	${gafDir}/pre-miRNA.genome.gaf
-	scripts/makeMiRna.py $< data/miRNA.dat |sed 's/|/ /' |sort -k3,13\
+${gafDir}/miRNA.genome.gaf:	${inputDir}/miRNA.genome.bed 
+	scripts/makeMiRna.py $< data/hsa.gff3 |sed 's/|/ /' |sort -k3,13\
         |sed 's/ /|/' > ${scratchDir}/miRNA.genome.uncombined.gaf
 	scripts/combineMiRnas.py ${scratchDir}/miRNA.genome.uncombined.gaf > $@
+
+${inputDir}/miRNA.genome.bed:	data/hsa.gff3
+	scripts/gffToBed.py -t miRNA -n ID $< > $@
+
 
 ${testOutput}/miRNA.pre-miRNA.diff:	${testInput}/miRNA.pre-miRNA.2.1.gaf ${testInput}/miRNA.pre-miRNA.3.0.gaf 
 	cat ${testInput}/miRNA.pre-miRNA.2.1.gaf \
