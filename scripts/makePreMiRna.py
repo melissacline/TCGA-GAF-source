@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import argparse
 import Bio.SeqIO
@@ -50,12 +50,16 @@ entryNumber = args.entryNumber
 
 
 #
-# First, read the annotation data from miRNA.dat
+# First, read the annotation data from miRNA.dat.  For each human
+# record (signified by the name beginning with "hsa"), save the
+# data in a dictonary indexed by accession 
 miRnaDat = dict()
 miRnaDatHandle = open(args.miRnaDat, "rU")
 for record in Bio.SeqIO.parse(miRnaDatHandle, "embl"):
-    miRnaDat[record.name] = record
+    if re.search("^hsa", record.name):
+        miRnaDat[record.id] = record
 miRnaDatHandle.close()
+
 
 #
 # Next, read the bed file containing the GRCh37-lite coordinates.
@@ -67,7 +71,7 @@ for line in preMiRnaBedFp:
     gg = Gaf.GafPreMiRna(bb)
     assert miRnaDat.has_key(bb.name)
     mm = miRnaDat[bb.name]
-    gg.featureId = "%s|%s" % (bb.name, mm.id)
+    gg.featureId = "%s|%s" % (mm.name, mm.id)
     gg.gene = getGeneName(mm.dbxrefs, cursor)
     gg.geneLocus = gg.compositeCoordsToLocus()
     entryNumber = entryNumber + 1

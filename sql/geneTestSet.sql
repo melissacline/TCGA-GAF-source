@@ -1,16 +1,16 @@
 create temporary table tmpExactTranscripts as
-    select k5to6.newId from kg5ToKg6 k5to6, knownGene kg6, knownGeneOld5 kg5
-       where k5to6.status = 'exact' 
-         and k5to6.newId = kg6.name and k5to6.oldId = kg5.name 
-         and kg5.cdsStart = kg6.cdsStart and kg5.cdsEnd = kg6.cdsEnd
-         and kg5.txStart = kg6.txStart and kg5.txEnd = kg6.txEnd
+    select kgNew.name from knownGene kgNew, knownGeneOld5 kgOld
+       where kgNew.name = kgOld.name
+         and kgNew.txStart = kgOld.txStart and kgNew.txEnd = kgOld.txEnd
+         and kgNew.cdsStart = kgOld.cdsStart and kgNew.cdsEnd = kgOld.cdsEnd
+         and kgNew.exonStarts = kgOld.exonStarts 
+         and kgNew.exonEnds = kgOld.exonEnds
 ;
 
 create temporary table kgSummary as 
    select ki.* from knownIsoformsClustersMerged ki, tmpExactTranscripts et
-    where ki.transcript = et.newId
+    where ki.transcript = et.name
 ;
-create index clusterId on kgSummary (clusterId);
 
 create temporary table tmpClusterTotals as 
     select clusterId, count(*) as total from knownIsoformsClustersMerged
