@@ -9,20 +9,10 @@ import MySQLdb.cursors
 import re
 import sys
 
-def getGeneName(xRefList, cursor):
+def getGeneName(xRefList, id, cursor):
     """Given a list of cross-references, try to find the official HUGO symbol & Entrez Gene ID"""
     #
-    # First, try to find an HGNC entry in the xref list
-    for xx in xRefList:
-        if re.match("^HGNC:", xx):
-            cursor.execute("SELECT symbol, entrezId FROM hgnc where hgncId = '%s'" % (xx))
-            assert cursor.rowcount <= 1
-            if cursor.rowcount == 1:
-                row = cursor.fetchone()
-                geneName = "%s|%s" % (row['symbol'], row['entrezId'])
-                return(geneName)
-    #
-    # Failing that, try to find an ENTREZGENE entry and search on that.
+    # First, try to find an ENTREZGENE entry in the xref list
     for xx in xRefList:
         if re.match("^ENTREZGENE:", xx):
             entrezId = xx.split(":")[1]
@@ -32,6 +22,33 @@ def getGeneName(xRefList, cursor):
                 row = cursor.fetchone()
                 geneName = "%s|%s" % (row['symbol'], entrezId)
                 return(geneName)
+    #
+    # Failing that, try to find an HGNC entry and search on that.
+    # One might think that the HGNC entry would be the best thing to search on.
+    # But it turns out that at this time (May 20, 2012), the Entrez Gene IDs distinguish
+    # between paralogs more effectively.
+    for xx in xRefList:
+        if re.match("^HGNC:", xx):
+            cursor.execute("SELECT symbol, entrezId FROM hgnc where hgncId = '%s'" % (xx))
+            assert cursor.rowcount <= 1
+            if cursor.rowcount == 1:
+                row = cursor.fetchone()
+                geneName = "%s|%s" % (row['symbol'], row['entrezId'])
+                return(geneName)
+
+    #
+    # As a last ditch effort, try to find the miRBase ID in the list of synonyms.
+    # When doing so, take care to avoid degenerate matches.  Look for an exact
+    # match to one of the tokens in the symbol string, in which multiple synonyms
+    # are each separated by a comma followed by a single space.  If there is a hit
+    # on the synonym, accept it if and only if there is a match to one HGNC entry.
+    cursor.execute("""SELECT symbol, entrezId FROM hgnc
+                       WHERE synonyms REGEXP '^((.*), )*%s(, (.*))*$'""" % (id))
+    if cursor.rowcount == 1:
+        row = cursor.fetchone()
+        geneName = "%s|%s" % (row['symbol'], row['entrezId'])
+        return(geneName)
+        
     return("")
 
             
@@ -72,7 +89,7 @@ for line in preMiRnaBedFp:
     assert miRnaDat.has_key(bb.name)
     mm = miRnaDat[bb.name]
     gg.featureId = "%s|%s" % (mm.name, mm.id)
-    gg.gene = getGeneName(mm.dbxrefs, cursor)
+    gg.gene = getGeneName(mm.dbxrefs, id, cursor)
     gg.geneLocus = gg.compositeCoordsToLocus()
     entryNumber = entryNumber + 1
     gg.entryNumber = entryNumber

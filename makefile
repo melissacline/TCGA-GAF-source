@@ -66,7 +66,8 @@ ${scratchDir}/gene.genome.gaf21.gaf: ${testDir}/testGenes.txt
 
 ${gafDir}/gene.genome.gaf:	${inputDir}/gene.genome.bed
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/cleanupGeneXref.py $< ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed
+	hgsql hg19 < sql/gafGeneXref.sql
+	scripts/geneToGeneXref.py $< ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed
 	scripts/makeGeneSet.py ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed |sort -k2,2 > $@ 
 
 
@@ -269,9 +270,12 @@ ${scratchDir}/pre-miRNA.genome.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "pre-miRNA" && $$9 == "genome" { print }' > $@
 
+#
+# After making the pre-miRNA GAF data, add the genes to the 
 ${gafDir}/pre-miRNA.genome.gaf:	${inputDir}/pre-miRNA.genome.bed
 	liftOver ${inputDir}/pre-miRNA.genome.bed data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makePreMiRna.py ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed data/miRNA.dat > $@
+	scripts/preMiRnaToGeneXref.py $< $@ 
 
 ${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
 	scripts/gffToBed.py -t miRNA_primary_transcript -n accession_number $< > $@

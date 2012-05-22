@@ -17,7 +17,6 @@ args = parser.parse_args()
 db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
                      passwd="S3attl3-S7u")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
-cursor.execute("DELETE FROM gafGeneXref")
 
 #
 # First, make a dictionary of the hg19 coordinates of each gene
@@ -47,7 +46,7 @@ for line in grch37LiteFp:
     geneName = ";".join(tokens)
     locus = "%s:%d-%d:%s" % (bb.chrom, bb.chromStart + 1,
                              bb.chromEnd, bb.strand)
-    cursor.execute("""INSERT INTO gafGeneXref (geneName, locus, clusterId,
+    cursor.execute("""INSERT INTO gafGeneXref (geneName, grch37LiteLocus, clusterId,
                                                chrom, chromStart, chromEnd, strand)
                       VALUES ('%s', '%s', %s, '%s', %s, %s, '%s')""" \
                    % (geneName, locus, clusterId, hg19Coords.chrom,
