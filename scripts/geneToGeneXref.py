@@ -64,10 +64,10 @@ for row in cursor.fetchall():
         # Build the target locus string
         locusString = ""
         delimiter = ""
-        cursor.execute("SELECT locus FROM gafGeneXref WHERE geneName = '%s'" \
+        cursor.execute("SELECT grch37LiteLocus FROM gafGeneXref WHERE geneName = '%s'" \
                        % (basicGeneName))
         for locusRow in cursor.fetchall():
-            locusString = locusString + delimiter + locusRow["locus"]
+            locusString = locusString + delimiter + locusRow["grch37LiteLocus"]
             delimiter = ";"
         #
         # Rename the genes and update the locus string for all genes with
@@ -77,7 +77,7 @@ for row in cursor.fetchall():
                           WHERE geneName = '%s'""" % (basicGeneName))
         for idRow in cursor.fetchall():
             cursor.execute("""UPDATE gafGeneXref
-                              SET geneName = '%s|%dof%d', locus = '%s'
+                              SET geneName = '%s|%dof%d', grch37LiteLocus = '%s'
                               WHERE clusterId = '%d'""" \
                            % (basicGeneName, counter, totalCount,
                               locusString, idRow["clusterId"]))

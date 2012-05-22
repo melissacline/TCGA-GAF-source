@@ -29,13 +29,13 @@ for line in fp:
     clusterId = tokens.pop()
     bb.name = ";".join(tokens)
     gg = Gaf.GafExon(bb, entryNumber, args.exonType)
-    geneXrefQuery = """SELECT geneName, locus FROM gafGeneXref
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
     if cursor.rowcount == 1:
         row = cursor.fetchone()
         gg.gene = row["geneName"]
-        gg.geneLocus = row["locus"]
+        gg.geneGrch37LiteLocus = row["grch37LiteLocus"]
         entryNumber = entryNumber + 1
         gg.write(sys.stdout)
 exit(entryNumber)

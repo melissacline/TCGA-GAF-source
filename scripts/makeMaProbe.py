@@ -37,7 +37,7 @@ for line in fp:
     grch37LiteBed = Bed.Bed(line.split())
     hg19Bed = hg19Coords[grch37LiteBed.name]
     gg = Gaf.GafMaProbe(grch37LiteBed, entryNumber)
-    geneXrefQuery = """SELECT geneName, locus FROM gafGeneXref
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                          WHERE chrom = '%s' AND chromStart <= %s
                            AND chromEnd >= %s
                            and strand = '%s'""" % (hg19Bed.chrom, hg19Bed.chromEnd,
@@ -47,7 +47,7 @@ for line in fp:
     if cursor.rowcount == 1:
         row = cursor.fetchone()
         gg.gene = row["geneName"]
-        gg.geneLocus = row["locus"]
+        gg.geneLocus = row["grch37LiteLocus"]
     entryNumber = entryNumber + 1
     gg.entryNumber = entryNumber
     gg.write(sys.stdout)

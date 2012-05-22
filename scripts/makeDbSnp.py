@@ -62,7 +62,7 @@ def mapSnpToLocus(bedData, snpInfo, cursor):
     delimiter = ""
     for row in cursor.fetchall():
         geneString = "%s%s%s" % (geneString, delimiter, row['geneName'])
-        locusString = "%s%s%s" % (locusString, delimiter, row['locus'])
+        locusString = "%s%s%s" % (locusString, delimiter, row['grch37LiteLocus'])
         delimiter = ";"
     return((geneString, locusString))
     

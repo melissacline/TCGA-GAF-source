@@ -25,13 +25,13 @@ for line in fp:
     bb = Bed.Bed(line.split())
     tokens = bb.name.split(";")
     clusterId = tokens.pop()
-    geneXrefQuery = """SELECT geneName, locus FROM gafGeneXref
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
     if cursor.rowcount == 1:
         row = cursor.fetchone()
         gene = row["geneName"]
-        geneLocus = row["locus"]
+        geneLocus = row["grch37LiteLocus"]
         for ii in range(len(bb.blocks)-1):
             gg = Gaf.GafJunction(bb, entryNumber, ii)
             gg.gene = gene

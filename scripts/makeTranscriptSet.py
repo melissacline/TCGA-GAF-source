@@ -34,13 +34,13 @@ for line in fp:
         row = cursor.fetchone()
         if len(row["value"]) > 0:
             gg.featureAliases = row["value"]
-    geneXrefQuery = """SELECT geneName, locus FROM gafGeneXref
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
     if cursor.rowcount == 1:
         row = cursor.fetchone()
         gg.gene = row["geneName"]
-        gg.geneLocus = row["locus"]
+        gg.geneLocus = row["grch37LiteLocus"]
         entryNumber = entryNumber + 1
         gg.write(sys.stdout)
 exit(entryNumber)
