@@ -35,7 +35,7 @@ for line in fp:
     if cursor.rowcount == 1:
         row = cursor.fetchone()
         gg.gene = row["geneName"]
-        gg.geneGrch37LiteLocus = row["grch37LiteLocus"]
+        gg.geneLocus = row["grch37LiteLocus"]
         entryNumber = entryNumber + 1
         gg.write(sys.stdout)
 exit(entryNumber)

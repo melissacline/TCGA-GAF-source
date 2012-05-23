@@ -44,7 +44,6 @@ for line in featureFp:
         for comp in compositesThisFeature:
             featToComp = Gaf.FeatureToCompositeGaf()
             featToComp.assign(feat, comp)
-            #print "feature", feat.featureId, "composite", comp.featureId, "len is ", len
             if len(featToComp.featureCoordinates) > 0:
                 featToComp.entryNumber = entryNumber
                 print featToComp

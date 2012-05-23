@@ -49,7 +49,7 @@ create temporary table tmpTestGenes as
               and kg.clusterId = t.clusterId 
               and g.clusterId = t.clusterId and g.geneName not like '%of%'
               and h.symbol = g21.geneName and h.symbol = s1.geneSymbol
-        order by rand() limit 200
+        order by rand() limit 500
 ;
 
 select symbol, entrezId 
@@ -60,7 +60,7 @@ select symbol, entrezId
 create temporary table tmpTestTranscripts as
     select ki.transcript from tmpTestGenes tg, knownIsoformsClustersMerged ki
       where ki.clusterId = tg.clusterId
-    order by rand() limit 200
+    order by rand() limit 500
 ;
 
 select transcript

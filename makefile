@@ -110,10 +110,12 @@ ${testOutput}/transcript.gene.diff:	${testInput}/transcript.gene.2.1.gaf ${testI
 	diff ${testInput}/transcript.gene.2.1.subset ${testInput}/transcript.gene.3.0.subset > $@
 
 ${testInput}/transcript.gene.3.0.gaf:	${testInput}/transcript.genome.3.0.gaf ${testInput}/gene.genome.3.0.gaf
-	scripts/featureToComposite.py ${testInput}/transcript.genome.3.0.gaf ${testInput}/gene.genome.3.0.gaf > $@
+	scripts/featureToComposite.py ${testInput}/transcript.genome.3.0.gaf ${testInput}/gene.genome.3.0.gaf |sort -k2,2 > $@
 
 ${testInput}/transcript.gene.2.1.gaf: ${scratchDir}/transcript.gene.2.1.gaf ${testDir}/testTranscripts.txt
-	cat ${testDir}/testTranscripts.txt |awk '{print "grep", $$1, "${scratchDir}/transcript.gene.2.1.gaf"}' |bash > $@
+	cat ${testDir}/testTranscripts.txt |awk '{print "grep", $$1, "${scratchDir}/transcript.gene.2.1.gaf"}' |bash > ${scratchDir}/transcript.gene.2.1.superset.gaf
+	cat ${testDir}/testGenes.txt |awk '{ print "grep -w \"" $$1 "|" $$2  "\" ${scratchDir}/transcript.gene.2.1.superset.gaf"}' |bash |sort -k2,2 > $@
+	rm ${scratchDir}/transcript.gene.2.1.superset.gaf
 
 ${scratchDir}/transcript.gene.2.1.gaf:
 	zcat ${gaf21File} \
@@ -132,14 +134,21 @@ ${testOutput}/componentExon.transcript.diff:	${testInput}/componentExon.transcri
 	diff ${testInput}/componentExon.transcript.2.1.subset ${testInput}/componentExon.transcript.3.0.subset > $@
 
 ${testInput}/componentExon.transcript.3.0.gaf:	${testInput}/componentExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf
-	scripts/featureToComposite.py ${testInput}/componentExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf |sort -k2,2 > $@
+	scripts/featureToComposite.py ${testInput}/componentExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf |sort -k2,2 |uniq > $@
 
 ${testInput}/componentExon.genome.3.0.gaf:	${gafDir}/componentExon.genome.gaf ${testDir}/testGenes.txt
 	cat ${testDir}/testGenes.txt \
-	| awk '{ print "grep", $$1, "${gafDir}/componentExon.genome.gaf"}' |bash |sort -k2,2 > $@
+	| awk '{ print "grep", $$1, "${gafDir}/componentExon.genome.gaf"}' |bash |sort -k2,2 |uniq > $@
 
-${testInput}/componentExon.transcript.2.1.gaf: ${scratchDir}/componentExon.transcript.2.1.gaf ${testDir}/testTranscripts.txt
-	cat ${testDir}/testTranscripts.txt |awk '{print "grep", $$1, "${scratchDir}/componentExon.transcript.2.1.gaf"}' |bash |sort -k2,2 > $@
+${testInput}/componentExon.transcript.2.1.gaf: ${scratchDir}/componentExon.transcript.2.1.gaf ${testDir}/testTranscripts.txt ${testDir}/testGenes.txt
+	cat ${testDir}/testTranscripts.txt \
+	|awk '{print "grep", $$1, "${scratchDir}/componentExon.transcript.2.1.gaf"}'  \
+	|bash > ${scratchDir}/componentExon.transcript.2.1.superset.gaf
+	cat ${testDir}/testGenes.txt |awk '{ print "grep -w \"" $$1 "|" $$2  "\" ${scratchDir}/componentExon.transcript.2.1.superset.gaf"}' \
+	|bash |sort -k2,2 |uniq > $@
+	rm ${scratchDir}/componentExon.transcript.2.1.superset.gaf
+
+
 
 ${scratchDir}/componentExon.transcript.2.1.gaf:
 	zcat ${gaf21File} \
@@ -161,17 +170,24 @@ ${testOutput}/compositeExon.transcript.diff:	${testInput}/compositeExon.transcri
 	diff ${testInput}/compositeExon.transcript.2.1.subset ${testInput}/compositeExon.transcript.3.0.subset > $@
 
 ${testInput}/compositeExon.transcript.3.0.gaf:	${testInput}/compositeExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf
-	scripts/featureToComposite.py ${testInput}/compositeExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf |sort -k2,2 > $@
+	scripts/featureToComposite.py ${testInput}/compositeExon.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf |sort -k2,2 |uniq > $@
 
 ${gafDir}/compositeExon.gene.gaf: ${gafDir}/compositeExon.genome.gaf ${gafDir}/gene.genome.gaf
 	scripts/featureToComposite.py ${gafDir}/compositeExon.genome.gaf ${gafDir}/gene.genome.gaf > $@
 
 ${testInput}/compositeExon.genome.3.0.gaf:	${gafDir}/compositeExon.genome.gaf ${testDir}/testGenes.txt
 	cat ${testDir}/testGenes.txt \
-	| awk '{ print "grep", $$1, "${gafDir}/compositeExon.genome.gaf"}' |bash |sort -k2,2 > $@
+	| awk '{ print "grep", $$1, "${gafDir}/compositeExon.genome.gaf"}' \
+        | bash |sort -k2,2 |uniq > $@
 
-${testInput}/compositeExon.transcript.2.1.gaf: ${scratchDir}/compositeExon.transcript.2.1.gaf ${testDir}/testTranscripts.txt
-	cat ${testDir}/testTranscripts.txt |awk '{print "grep", $$1, "${scratchDir}/compositeExon.transcript.2.1.gaf"}' |bash |sort -k2,2 > $@
+
+${testInput}/compositeExon.transcript.2.1.gaf: ${scratchDir}/compositeExon.transcript.2.1.gaf ${testDir}/testTranscripts.txt ${testDir}/testGenes.txt
+	cat ${testDir}/testTranscripts.txt \
+	|awk '{print "grep", $$1, "${scratchDir}/compositeExon.transcript.2.1.gaf"}'  \
+	|bash > ${scratchDir}/compositeExon.transcript.2.1.superset.gaf
+	cat ${testDir}/testGenes.txt |awk '{ print "grep -w \"" $$1 "|" $$2  "\" ${scratchDir}/compositeExon.transcript.2.1.superset.gaf"}' \
+	|bash |sort -k2,2 > $@
+	rm ${scratchDir}/compositeExon.transcript.2.1.superset.gaf
 
 ${scratchDir}/compositeExon.transcript.2.1.gaf:
 	zcat ${gaf21File} \
@@ -183,21 +199,27 @@ ${gafDir}/compositeExon.transcript.gaf: ${gafDir}/compositeExon.genome.gaf ${gaf
 ${testOutput}/junction.transcript.diff:	${testInput}/junction.transcript.2.1.gaf ${testInput}/junction.transcript.3.0.gaf
 	cat ${testInput}/junction.transcript.2.1.gaf \
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16, $$17, $$18, $$19 }' \
-        > ${testInput}/junction.transcript.2.1.subset
+        |sort |uniq > ${testInput}/junction.transcript.2.1.subset
 	cat ${testInput}/junction.transcript.3.0.gaf \
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16, $$17, $$18, $$19 }' \
-        > ${testInput}/junction.transcript.3.0.subset
+        |sort |uniq > ${testInput}/junction.transcript.3.0.subset
 	diff ${testInput}/junction.transcript.2.1.subset ${testInput}/junction.transcript.3.0.subset > $@
 
-${testInput}/junction.transcript.3.0.gaf:	${testInput}/junction.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf
-	scripts/junctionToTranscript.py ${testInput}/junction.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf |sort -k2,2 > $@
-
-${testInput}/junction.genome.3.0.gaf:	${gafDir}/junction.genome.gaf ${testDir}/testGenes.txt
-	cat ${testDir}/testGenes.txt \
-	| awk '{ print "grep", $$1, "${gafDir}/junction.genome.gaf"}' |bash |sort -k2,2 > $@
+${testInput}/junction.transcript.3.0.gaf:	${testInput}/junction.genome.3.0.gaf ${testInput}/transcript.genome.3.0.gaf 
+	cat ${testDir}/testTranscripts.txt \
+	|awk '{print "grep", $$1, "${gafDir}/junction.transcript.gaf"}'  \
+	|bash > ${scratchDir}/junction.transcript.3.0.superset.gaf
+	cat ${testDir}/testGenes.txt |awk '{ print "grep -w \"" $$1 "|" $$2  "\" ${scratchDir}/junction.transcript.3.0.superset.gaf"}' \
+	|bash |sort -k2,2 |uniq> $@
+	rm ${scratchDir}/junction.transcript.3.0.superset.gaf
 
 ${testInput}/junction.transcript.2.1.gaf: ${scratchDir}/junction.transcript.2.1.gaf ${testDir}/testTranscripts.txt
-	cat ${testDir}/testTranscripts.txt |awk '{print "grep", $$1, "${scratchDir}/junction.transcript.2.1.gaf"}' |bash |sort -k2,2 > $@
+	cat ${testDir}/testTranscripts.txt \
+	|awk '{print "grep", $$1, "${scratchDir}/junction.transcript.2.1.gaf"}'  \
+	|bash > ${scratchDir}/junction.transcript.2.1.superset.gaf
+	cat ${testDir}/testGenes.txt |awk '{ print "grep -w \"" $$1 "|" $$2  "\" ${scratchDir}/junction.transcript.2.1.superset.gaf"}' \
+	|bash |sort -k2,2 |uniq > $@
+	rm ${scratchDir}/junction.transcript.2.1.superset.gaf
 
 ${scratchDir}/junction.transcript.2.1.gaf:
 	zcat ${gaf21File} \
@@ -209,7 +231,7 @@ ${gafDir}/junction.transcript.gaf: ${gafDir}/junction.genome.gaf ${gafDir}/trans
 
 ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt: sql/geneTestSet.sql
 	rm ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt
-	hgsql hg19 < scripts/sql/testGenes.sql
+	hgsql hg19 < sql/geneTestSet.sql
 
 ${outputBedDir}/%.bb:	${gafDir}/%.gaf
 	scripts/gafToBed.py $< |sort -k1,1 -k2,2n > ${scratchDir}/$*.postGaf.GRCh37-lite.bed
