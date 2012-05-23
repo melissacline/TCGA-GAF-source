@@ -317,10 +317,12 @@ ${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
 ${testOutput}/miRNA.genome.diff:	${testInput}/miRNA.genome.2.1.gaf ${testInput}/miRNA.genome.3.0.gaf 
 	cat ${testInput}/miRNA.genome.2.1.gaf \
 	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
-	|sort > ${scratchDir}/miRNA.genome.2.1.subset
+	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort \
+        > ${scratchDir}/miRNA.genome.2.1.subset
 	cat ${testInput}/miRNA.genome.3.0.gaf \
 	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
-	|sort > ${scratchDir}/miRNA.genome.3.0.subset
+	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort \
+        > ${scratchDir}/miRNA.genome.3.0.subset
 	diff ${scratchDir}/miRNA.genome.2.1.subset ${scratchDir}/miRNA.genome.3.0.subset > $@
 
 ${testInput}/miRNA.genome.2.1.gaf:	${testDir}/testPreMiRna.txt ${scratchDir}/miRNA.genome.gaf21.gaf

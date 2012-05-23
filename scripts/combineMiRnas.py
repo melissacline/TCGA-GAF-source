@@ -2,6 +2,7 @@
 
 import argparse
 import Gaf
+import re
 import sys
 
 parser = argparse.ArgumentParser()
@@ -34,6 +35,8 @@ for line in fp:
                                                   nextGaf.compositeCoordinates)
         prevGaf.gene = "%s;%s" % (prevGaf.gene, nextGaf.gene)
         prevGaf.geneLocus = "%s;%s" % (prevGaf.geneLocus, nextGaf.geneLocus)
-        prevGaf.featureInfo = "%s;%s" % (prevGaf.featureInfo, nextGaf.featureInfo)
+        prevGaf.featureInfo = "%s,%s" % (prevGaf.featureInfo,
+                                         re.sub("pre-miRNA=", "",
+                                                nextGaf.featureInfo))
 if nextGaf.featureId != prevGaf.featureId:
     nextGaf.write(sys.stdout)
