@@ -314,6 +314,12 @@ ${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
 # join preMiRna.old.txt preMiRna.new.txt |head -250 > testPreMiRna.txt
 
 
+#
+# When looking at the miRNA.genome records, don't look at the miRBase ID 
+# (the part that begins 'hsa'), or the strand, because those have been changed
+# by miRBase in many cases.  Also don't look at cases where multiple miRNAs
+# have been combined into a single entry, because there is nothing to ensure
+# that the order of the entries is unchanged since the last GAF build.
 ${testOutput}/miRNA.genome.diff:	${testInput}/miRNA.genome.2.1.gaf ${testInput}/miRNA.genome.3.0.gaf 
 	cat ${testInput}/miRNA.genome.2.1.gaf \
 	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \

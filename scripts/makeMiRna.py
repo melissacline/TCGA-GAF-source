@@ -1,4 +1,32 @@
 #!/usr/bin/env python
+"""
+makeMiRna.py: generate the miRNA-genome GAF records
+
+Usage:
+makeMiRna.py -n 1000 miRna.genome.bed hsa.gff3 > miRNA.genome.gaf
+
+Generate these records given the GRCh37-lite coordinates of the miRNA records
+(which were obtained in hg19 coordinate spacefrom the miRBase hsa.gff3 file)
+and the miRBase hsa.gff3 file (used for mapping between different ID types).
+
+Each entry in the miRNA-genome BED file is named with the miRBase ID
+(eg MIMAT0005890_1).  For each entry, use the key-value pairs to look up the
+name (eg. hsa-miR-1302) and accession (eg MIMAT0005890).  The name and accession
+will be concatenated to form the GAF ID (eg hsa-miR-1302|MIMAT0005890).  Also from
+hsa.gff3, obtain the ID of the pre-miRNA that the miRNA is derived from
+(eg MI0006369_1), and use the key-value pairs from hsa.gff3 to look up the name
+and accession of the pre-miRNA.  List the pre-miRNA in the featureInfo column
+(e.g. pre-miRNA=hsa-mir-1302-8|MI0006369)
+
+Arguments:
+miRnaBed: a BED file giving the miRNA GRCh37-lite coordinates
+hsa.gff3: the coordinate and name data distributed by miRBase
+
+Options
+-n: Initial entry number (GFF column 1). This number starts at 1 by default
+    and is incremented for each output line.
+
+"""
 
 import argparse
 import Bio.SeqIO

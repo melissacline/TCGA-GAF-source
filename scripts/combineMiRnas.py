@@ -1,4 +1,19 @@
 #!/usr/bin/env python
+"""
+combineMiRnas.py: combine the GAf entries for miRNAs with the same feature ID
+
+Usage:
+combimeMiRnas.py uncombined.gaf > combined.gaf
+
+Given a GAF file, in which each line represents a single miRNA genomic alignment,
+generate a GAF file in which each distinct miRNA has one line containing all of
+its genomic alignments, with feature and composite coordinate strings delimited
+by semicolons and featureInfo (pre-miRNA=) entries combined and delimimted with
+commas.
+
+Assumptions:
+The input data should be sorted by miRNA feature ID
+"""
 
 import argparse
 import Gaf
