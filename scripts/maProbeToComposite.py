@@ -19,6 +19,7 @@ def findOverlappingMaProbes(compositeBed, cursor):
                                           compositeBed.chromStart,
                                           compositeBed.strand)
     cursor.execute(query)
+    print query
     for row in cursor.fetchall():
         overlappingProbeList.append(row['name'])
     return overlappingProbeList
@@ -72,11 +73,8 @@ for line in compositeGafFp:
     compositeBedEntry = compositeBed[featureId]
     overlappingMaProbeNames = findOverlappingMaProbes(compositeBedEntry, cursor)
     for maProbeName in overlappingMaProbeNames:
-#        print "aligning ", compositeGaf.featureId, "to", maProbeName
         assert maProbe.has_key(maProbeName)
         maProbeGaf = maProbe[maProbeName]
-#        print "probe gaf", maProbeGaf
-#        print "composite gaf", compositeGaf
         maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
         maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:

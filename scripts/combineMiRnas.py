@@ -48,10 +48,15 @@ for line in fp:
                                                 nextGaf.featureCoordinates)
         prevGaf.compositeCoordinates = "%s;%s" % (prevGaf.compositeCoordinates,
                                                   nextGaf.compositeCoordinates)
-        prevGaf.gene = "%s;%s" % (prevGaf.gene, nextGaf.gene)
-        prevGaf.geneLocus = "%s;%s" % (prevGaf.geneLocus, nextGaf.geneLocus)
-        prevGaf.featureInfo = "%s,%s" % (prevGaf.featureInfo,
-                                         re.sub("pre-miRNA=", "",
-                                                nextGaf.featureInfo))
-if nextGaf.featureId != prevGaf.featureId:
-    nextGaf.write(sys.stdout)
+
+        if not re.search(re.sub("\?", "\?", nextGaf.gene), prevGaf.gene):
+            prevGaf.gene = "%s;%s" % (prevGaf.gene, nextGaf.gene)
+        if not re.search(re.sub("\+", "\+", nextGaf.geneLocus), prevGaf.geneLocus):
+            prevGaf.geneLocus = "%s;%s" % (prevGaf.geneLocus, nextGaf.geneLocus)
+        if not re.search(re.sub("pre-miRNA=", "", nextGaf.featureInfo),
+                         prevGaf.featureInfo):
+            prevGaf.featureInfo = "%s,%s" % (prevGaf.featureInfo,
+                                             re.sub("pre-miRNA=", "",
+                                                    nextGaf.featureInfo))
+if nextGaf.featureId == prevGaf.featureId:
+    prevGaf.write(sys.stdout)

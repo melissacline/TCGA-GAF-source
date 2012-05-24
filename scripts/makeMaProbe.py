@@ -51,10 +51,11 @@ parser.add_argument('hg19Bed', type=str, help="Probe BED file, hg19 coordinates"
 parser.add_argument('gaf21File', type=str, help="GAF2.1 file")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
+parser.add_argument("-d", dest="debug", help="Optional debugging info", default=False)
 args = parser.parse_args()
 
 #
-# Read the hg19 coordinates into a dictionary.  We'll use these
+# Read the hg19 probe coordinates into a dictionary.  We'll use these
 # for finding overlapping genes.
 hg19Coords = dict()
 hg19CoordsFp = open(args.hg19Bed, "rU")
@@ -95,6 +96,8 @@ for line in fp:
                                                    hg19Bed.chromStart,
                                                    hg19Bed.strand)
     cursor.execute(geneXrefQuery)
+    if (args.debug):
+        print "executing query", geneXrefQuery
     delimiter  = ""
     gg.gene = ""
     gg.geneLocus = ""

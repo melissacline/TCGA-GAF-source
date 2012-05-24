@@ -10,7 +10,6 @@ testOutput = ${testDir}/output
 transcriptTestFields = 2-5,8-9,11-13
 geneTestFields = 2-5,7,9-10,12-17
 
-.PHONY:	${testDir}/testMaProbe.txt
 
 geneSetContents = ${gafDir}/gene.genome.gaf ${gafDir}/transcript.genome.gaf \
 	${gafDir}/compositeExon.genome.gaf ${gafDir}/componentExon.genome.gaf \
@@ -524,28 +523,24 @@ ${scratchDir}/MAprobe.pre-miRNA.gaf21.gaf:
 #
 ${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput}/MAprobe.miRNA.3.0.gaf
 	cat ${testInput}/MAprobe.miRNA.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
+	| awk -F'\t' '{ split($$15, tokens, "-"); if (tokens[1] < tokens[2]) { $$15 = tokens[2] "-" tokens[1]; print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
 	|sort > ${scratchDir}/MAprobe.miRNA.2.1.subset
 	cat ${testInput}/MAprobe.miRNA.3.0.gaf \
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
 	|sort > ${scratchDir}/MAprobe.miRNA.3.0.subset
 	diff ${scratchDir}/MAprobe.miRNA.2.1.subset ${scratchDir}/MAprobe.miRNA.3.0.subset > $@
 
-${testInput}/MAprobe.miRNA.3.0.gaf:     ${testDir}/testMiRnas.txt ${gafDir}/MAprobe.miRNA.gaf 
-	-cat ${testDir}/testMaProbe.txt \
-	| awk '{ print "grep \"" $$1 "\" ${gafDir}/MAprobe.miRNA.gaf"}' \
-	| bash > ${scratchDir}/MAprobe.miRNA.3.0.superset.gaf
-	-cat ${testDir}/testMiRnas.txt \
-	| awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.miRNA.3.0.superset.gaf"}' \
-	| bash > $@
+${testInput}/MAprobe.miRNA.3.0.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf 
+	- cat ${scratchDir}/MAprobe.miRNA.gaf21.gaf \
+	| awk -F'\t' '{ split($$8, tokens, "|"); print "grep " $$2 ".*" tokens[2] " ${gafDir}/MAprobe.miRNA.gaf"}' \
+	| bash |sort |uniq > $@	
 
-${testInput}/MAprobe.miRNA.2.1.gaf:     ${testDir}/testMiRnas.txt ${scratchDir}/MAprobe.miRNA.gaf21.gaf                                
-	-cat ${testDir}/testMaProbe.txt \
-	| awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.miRNA.gaf21.gaf"}' \
-	| bash > ${scratchDir}/MAprobe.miRNA.2.1.superset.gaf
-	-cat ${testDir}/testMiRnas.txt \
-	| awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.miRNA.2.1.superset.gaf"}' \
-	| bash > $@
+
+${testInput}/MAprobe.miRNA.2.1.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf
+	- cat ${gafDir}/MAprobe.miRNA.gaf \
+	| awk -F'\t' '{ split($$8, tokens, "|"); print "grep " $$2 ".*" tokens[2] " ${scratchDir}/MAprobe.miRNA.gaf21.gaf"}' \
+	| bash |sort |uniq > $@	
+
 
 ${gafDir}/MAprobe.miRNA.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/miRNA.genome.gaf ${inputDir}/miRNA.genome.bed
 	scripts/gafToBed.py ${scratchDir}/miRNA.genome.uncombined.gaf \
