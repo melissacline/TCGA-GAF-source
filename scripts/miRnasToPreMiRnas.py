@@ -21,11 +21,10 @@ entryNumber = args.entryNumber
 preMiRnas = dict()
 preMiRnaGafFp = open(args.preMiRnaGaf)
 for line in preMiRnaGafFp:
-    print "read", line
     preMiRnaGaf = Gaf.Gaf()
     preMiRnaGaf.setFields(line.rstrip().split("\t"))
-    geneId = preMiRnaGaf.featureId.split("|")[0]
-    preMiRnas[geneId] = preMiRnaGaf
+#    geneId = preMiRnaGaf.featureId.split("|")[0]
+    preMiRnas[preMiRnaGaf.featureId] = preMiRnaGaf
 preMiRnaGafFp.close()
 
 
@@ -37,9 +36,9 @@ miRnaFp = open(args.miRnaGaf)
 for line in miRnaFp:
     miRnaGaf = Gaf.Gaf()
     miRnaGaf.setFields(line.rstrip().split("\t"))
-    miRnaGeneId = miRnaGaf.featureId.split("|")[0]
-    assert preMiRnas.has_key(miRnaGeneId)
-    preMiRnaGaf = preMiRnas[miRnaGeneId]
+    preMiRnaId = miRnaGaf.featureInfo.split("pre-miRNA=")[1]
+    assert preMiRnas.has_key(preMiRnaId)
+    preMiRnaGaf = preMiRnas[preMiRnaId]
     miRnaToPreMiRna = Gaf.FeatureToCompositeGaf()
     miRnaToPreMiRna.assign(miRnaGaf, preMiRnaGaf)
     miRnaToPreMiRna.featureInfo = ""

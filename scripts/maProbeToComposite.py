@@ -54,7 +54,7 @@ compositeBed = dict()
 compositeBedFp = open(args.compositeBed)
 for line in compositeBedFp:
     bedThisComposite = Bed.Bed(line.rstrip().split())
-    bedName = bedThisComposite.name.split(";")[0]
+    bedName = bedThisComposite.name.split("|")[0]
     compositeBed[bedName] = bedThisComposite
 compositeBedFp.close()
 
@@ -72,8 +72,11 @@ for line in compositeGafFp:
     compositeBedEntry = compositeBed[featureId]
     overlappingMaProbeNames = findOverlappingMaProbes(compositeBedEntry, cursor)
     for maProbeName in overlappingMaProbeNames:
+#        print "aligning ", compositeGaf.featureId, "to", maProbeName
         assert maProbe.has_key(maProbeName)
         maProbeGaf = maProbe[maProbeName]
+#        print "probe gaf", maProbeGaf
+#        print "composite gaf", compositeGaf
         maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
         maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:
