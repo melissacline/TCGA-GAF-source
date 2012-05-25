@@ -8,20 +8,27 @@ import MySQLdb.cursors
 import re
 import sys
 
-def findOverlappingMaProbes(compositeBed, cursor):
-    """Given bed coordinates for a composite, return the names of any maProbe
-    that overlaps it. If no maProbe overlaps it, return an empty list"""
+def findOverlappingMaProbes(chrom, chromStart, chromEnd, strand, cursor, debug):
+    """Given bed coordinates for a composite, return a list of any maProbe
+    that overlaps it. If some probe overlaps it, return a key to match the
+    dictionary created below.  If no maProbe overlaps it, return an empty list.
+    Note that BED data (the table) is 0-based while GAF data (everything else)
+    is 1-based.  Adjust appropriately"""
     overlappingProbeList = list()
-    query = """SELECT name FROM gafMaProbe WHERE chrom = '%s'
-                  AND chromStart <= %s AND chromEnd >= %s
-                  AND strand = '%s'""" % (compositeBed.chrom,
-                                          compositeBed.chromEnd,
-                                          compositeBed.chromStart,
-                                          compositeBed.strand)
+    query = """SELECT name, chrom, chromStart, chromEnd, strand FROM gafMaProbeGrch37Lite
+                WHERE chrom = '%s' AND chromStart <= %s
+                  AND chromEnd >= %d AND strand = '%s'"""  % (chrom, chromEnd,
+                                                              int(chromStart) - 1, strand)
+    if debug:
+        print "executing", query
     cursor.execute(query)
-    print query
     for row in cursor.fetchall():
-        overlappingProbeList.append(row['name'])
+        newEntry = "%s:%s:%d-%s:%s" % (row['name'], row['chrom'],
+                                       int(row['chromStart']) + 1,
+                                       row['chromEnd'], row['strand'])
+        if debug:
+            print "adding", newEntry, "to results"
+        overlappingProbeList.append(newEntry)
     return overlappingProbeList
 
 db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
@@ -31,33 +38,32 @@ cursor = db.cursor(MySQLdb.cursors.DictCursor)
 parser = argparse.ArgumentParser()
 parser.add_argument('maProbeGaf', type=str, help="maProbe GAF file")
 parser.add_argument('compositeGaf', type=str, help="composite GAF file")
-parser.add_argument('compositeBed', type=str,
-                    help="composite BED file, hg19 coordinates")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
+parser.add_argument("-d", dest="debug", help="display debugging messages",
+                    default=False)
 args = parser.parse_args()
 
 entryNumber = args.entryNumber
 
 #
-# First, read the maProbe GAF data into a dictionary.  
+# First, read the maProbe GAF data into a dictionary.  One probe can have
+# many alignments, so use a key based on the name and coordinates.
 maProbe = dict()
 maProbeGafFp = open(args.maProbeGaf)
 for line in maProbeGafFp:
     maProbeGaf = Gaf.Gaf()
     maProbeGaf.setFields(line.rstrip().split("\t"))
-    maProbe[maProbeGaf.featureId] = maProbeGaf
+    (maChrom, maCoordinateString, maStrand) = maProbeGaf.compositeCoordinates.split(":")
+    maChromStart = maCoordinateString.split("-")[0]
+    maChromEnd = maCoordinateString.split("-")[-1]
+    key = "%s:%s:%s-%s:%s" % (maProbeGaf.featureId, maChrom, maChromStart, maChromEnd,
+                              maStrand)
+    if args.debug:
+        print "saving", key
+    maProbe[key] = maProbeGaf
 maProbeGafFp.close()
 
-#
-# Next, read the composite bed data into a dictionary.  
-compositeBed = dict()
-compositeBedFp = open(args.compositeBed)
-for line in compositeBedFp:
-    bedThisComposite = Bed.Bed(line.rstrip().split())
-    bedName = bedThisComposite.name.split("|")[0]
-    compositeBed[bedName] = bedThisComposite
-compositeBedFp.close()
 
 #
 # Next, read the composite GAF file.  For each composite, use the
@@ -68,13 +74,18 @@ compositeGafFp = open(args.compositeGaf)
 for line in compositeGafFp:
     compositeGaf = Gaf.Gaf()
     compositeGaf.setFields(line.rstrip().split("\t"))
-    featureId = compositeGaf.featureId.split("|")[0]
-    assert compositeBed.has_key(featureId)
-    compositeBedEntry = compositeBed[featureId]
-    overlappingMaProbeNames = findOverlappingMaProbes(compositeBedEntry, cursor)
-    for maProbeName in overlappingMaProbeNames:
-        assert maProbe.has_key(maProbeName)
-        maProbeGaf = maProbe[maProbeName]
+    (cgChrom, cgCoordinateString, cgStrand) = compositeGaf.compositeCoordinates.split(":")
+    cgCoordStart = cgCoordinateString.split("-")[0]
+    cgCoordEnd = cgCoordinateString.split("-")[-1]
+    if args.debug:
+        print "from composite gaf coordinates", compositeGaf.compositeCoordinates, \
+              "parsed", cgChrom, cgCoordStart, cgCoordEnd, cgStrand
+    overlappingMaProbeNames = findOverlappingMaProbes(cgChrom, cgCoordStart, cgCoordEnd,
+                                                      cgStrand, cursor, args.debug)
+    for maProbeEntry in overlappingMaProbeNames:
+        if args.debug:
+            print "workng on probe", maProbeEntry
+        maProbeGaf = maProbe[maProbeEntry]
         maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
         maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:

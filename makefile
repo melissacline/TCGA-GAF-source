@@ -414,6 +414,7 @@ ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	| awk -F'\t' '$$3 == "dbSNP" && $$9 == "genome" { print }' > $@
 
 ${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.bed ${gafDir}/gene.genome.gaf
+	exit  # Clean me up!
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeDbSnp.py ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP.raw.gaf
 	rm ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed
@@ -455,7 +456,7 @@ ${gafDir}/MAprobe.genome.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/gen
 
 ${scratchDir}/MAprobe.genome.raw.gaf:	${inputDir}/MAprobe.genome.bed
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makeMaProbe.py ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed $< ${scratchDir}/MAprobe.genome.gaf21.gaf > $@
+	scripts/makeMaProbe.py ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed $<  > $@
 
 ${testInput}/MAprobe.genome.2.1.gaf:	${scratchDir}/MAprobe.genome.gaf21.gaf ${testDir}/testMaProbe.txt 
 	cat ${testDir}/testMaProbe.txt \
@@ -519,16 +520,25 @@ ${scratchDir}/MAprobe.pre-miRNA.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "MAprobe" && $$9 == "pre-miRNA" { print }' > $@
 
-
+#
+# When comparing MAprobes to miRNAs, here are the things to NOT look at
+# - the miRNA nmes now include miR instead of mir
+# - the miRNA names also include suffices (-3p, -5p) where they didn't before.
+#   Don't even look at the miRNA name.  The accession is good enough.
+# - in any cases, the miRNA coordinates are now on a different strand.  This has two
+#   consequences.  First, in cases where the composite (miRNA) does not fully align to
+#   the probe, the set of aligned bases will be thrown off.  Second, the composite 
+#   coordinates will be in reverse order.  So, don't look at the composite coordinates.
+# That doesn't leave much...
 #
 ${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput}/MAprobe.miRNA.3.0.gaf
 	cat ${testInput}/MAprobe.miRNA.2.1.gaf \
-	| awk -F'\t' '{ split($$15, tokens, "-"); if (tokens[1] < tokens[2]) { $$15 = tokens[2] "-" tokens[1]; print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
-	|sort > ${scratchDir}/MAprobe.miRNA.2.1.subset
+	| awk -F'\t' '{ split($$8, tokens, "|"); $$8 = tokens[2];  print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$13, $$14, $$16 }' \
+	|sort |uniq > ${scratchDir}/MAprobe.miRNA.2.1.subset
 	cat ${testInput}/MAprobe.miRNA.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
-	|sort > ${scratchDir}/MAprobe.miRNA.3.0.subset
-	diff ${scratchDir}/MAprobe.miRNA.2.1.subset ${scratchDir}/MAprobe.miRNA.3.0.subset > $@
+	| awk -F'\t' '{ split($$8, tokens, "|"); $$8 = tokens[2]; print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10,  $$13, $$14, $$16 }' \
+	|sort |uniq > ${scratchDir}/MAprobe.miRNA.3.0.subset
+	diff -i ${scratchDir}/MAprobe.miRNA.2.1.subset ${scratchDir}/MAprobe.miRNA.3.0.subset > $@
 
 ${testInput}/MAprobe.miRNA.3.0.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf 
 	- cat ${scratchDir}/MAprobe.miRNA.gaf21.gaf \
@@ -548,7 +558,7 @@ ${gafDir}/MAprobe.miRNA.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/miRN
 	liftOver ${scratchDir}/miRNA.genome.GRCh37-lite.bed \
 	data/GRCh37-lite/GRCh37-lite.hg19.over.chain \
 	${scratchDir}/miRNA.genome.hg19.bed /dev/null
-	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf ${scratchDir}/miRNA.genome.uncombined.gaf ${scratchDir}/miRNA.genome.hg19.bed > $@
+	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf ${scratchDir}/miRNA.genome.uncombined.gaf  > $@
 
 ${scratchDir}/MAprobe.miRNA.gaf21.gaf:
 	zcat ${gaf21File} \
