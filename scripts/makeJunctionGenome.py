@@ -25,7 +25,8 @@ for line in fp:
     bb = Bed.Bed(line.split())
     tokens = bb.name.split(";")
     clusterId = tokens.pop()
-    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
+    geneXrefQuery = """SELECT DISTINCT geneName, grch37LiteLocus
+                         FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
     if cursor.rowcount == 1:

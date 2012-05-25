@@ -29,7 +29,8 @@ for line in fp:
     clusterId = tokens.pop()
     bb.name = ";".join(tokens)
     gg = Gaf.GafExon(bb, entryNumber, args.exonType)
-    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus
+                         FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
     if cursor.rowcount == 1:

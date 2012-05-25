@@ -41,6 +41,10 @@ for line in gafFp:
     line = line.rstrip()
     preMiRnaGaf = Gaf.Gaf()
     preMiRnaGaf.setFields(line.rstrip().split("\t"))
+    (grch37LiteChrom, grch37LiteCoords,
+     grch37LiteStrand) = preMiRnaGaf.compositeCoordinates.split(":")
+    grch37LiteChromStart = grch37LiteCoords.split("-")[0]
+    grch37LiteChromEnd = grch37LiteCoords.split("-")[-1]
     accession = preMiRnaGaf.featureId.split("|")[1]
     assert hg19Coordinates.has_key(accession)
     hg19Coords = hg19Coordinates[accession]
@@ -49,9 +53,17 @@ for line in gafFp:
     geneName = ";".join(tokens)
     locus = "%s:%d-%d:%s" % (bb.chrom, bb.chromStart + 1,
                              bb.chromEnd, bb.strand)
-    cursor.execute("""INSERT INTO gafGeneXref (geneName, grch37LiteLocus,
-                                               chrom, chromStart, chromEnd, strand, alias)
-                      VALUES ('%s', '%s', '%s', %s, %s, '%s', '%s')""" \
+    cursor.execute("""INSERT INTO gafGeneXref (geneName, grch37LiteLocus, hg19Chrom,
+                                               hg19ChromStart, hg19ChromEnd, hg19Strand,
+                                               grch37LiteChrom, grch37LiteChromStart,
+                                               grch37LiteChromEnd, grch37LiteStrand,
+                                               alias)
+                      VALUES ('%s', '%s',
+                              '%s', %s, %s, '%s',
+                              '%s', %s, %s, '%s',
+                              '%s')""" \
                    % (preMiRnaGaf.gene, preMiRnaGaf.geneLocus, hg19Coords.chrom,
                       hg19Coords.chromStart, hg19Coords.chromEnd, hg19Coords.strand,
+                      grch37LiteChrom, grch37LiteChromStart,
+                      grch37LiteChromEnd, grch37LiteStrand,
                       preMiRnaGaf.featureId))

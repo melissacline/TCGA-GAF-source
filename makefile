@@ -34,10 +34,9 @@ all:	${gafDir}/geneSet.gaf \
 	${outputBedDir}/pre-miRNA.genome.bb ${outputBedDir}/miRNA.genome.bb \
         ${testOutput}/pre-miRNA.genome.diff ${testOutput}/miRNA.genome.diff \
         ${testOutput}/miRNA.pre-miRNA.diff \
-	${outputBedDir}/affySnp.genome.bb ${outputBedDir}/dbSNP.genome.bb \
-	${outputBedDir}/dbSNP.genome.bb ${testOutput}/dbSNP.genome.diff \
         ${outputBedDir}/MAprobe.genome.bb ${testOutput}/MAprobe.genome.diff \
-        ${outputBedDir}/AffySNP.genome.bb
+        ${outputBedDir}/AffySNP.genome.bb \
+	${outputBedDir}/dbSNP.genome.bb ${testOutput}/dbSNP.genome.diff 
 
 ${gafDir}/geneSet.gaf:	${geneSetContents}
 	cat ${geneSetContents} | awk '{$$1 = NR; print}' > $@
@@ -402,7 +401,7 @@ ${testOutput}/dbSNP.genome.diff: ${testInput}/dbSNP.genome.2.1.gaf ${testInput}/
 
 ${testInput}/dbSNP.genome.3.0.gaf:	${inputDir}/dbSNP-test.bed
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $<\
+	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< \
 	|sort -k2,2 |scripts/combineSnps.py > $@ 
 
 #${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSNP.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
@@ -414,7 +413,6 @@ ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	| awk -F'\t' '$$3 == "dbSNP" && $$9 == "genome" { print }' > $@
 
 ${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.bed ${gafDir}/gene.genome.gaf
-	exit  # Clean me up!
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeDbSnp.py ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP.raw.gaf
 	rm ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed
@@ -456,7 +454,7 @@ ${gafDir}/MAprobe.genome.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/gen
 
 ${scratchDir}/MAprobe.genome.raw.gaf:	${inputDir}/MAprobe.genome.bed
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makeMaProbe.py ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed $<  > $@
+	scripts/makeMaProbe.py ${scratchDir}/MAprobe.genome.preGaf.GRCh37-lite.bed  > $@
 
 ${testInput}/MAprobe.genome.2.1.gaf:	${scratchDir}/MAprobe.genome.gaf21.gaf ${testDir}/testMaProbe.txt 
 	cat ${testDir}/testMaProbe.txt \

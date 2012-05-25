@@ -43,31 +43,18 @@ cursor = db.cursor(MySQLdb.cursors.DictCursor)
 parser = argparse.ArgumentParser()
 parser.add_argument('grch37LiteBed', type=str,
                     help="Probe BED file, GRCh37-lite coordinates")
-parser.add_argument('hg19Bed', type=str, help="Probe BED file, hg19 coordinates")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
 parser.add_argument("-d", dest="debug", help="Optional debugging info", default=False)
 args = parser.parse_args()
 
-#
-# Read the hg19 probe coordinates into a dictionary.  We'll use these
-# for finding overlapping genes.
-hg19Coords = dict()
-hg19CoordsFp = open(args.hg19Bed, "rU")
-for line in hg19CoordsFp:
-    hg19Bed = Bed.Bed(line.rstrip().split())
-    hg19Coords[hg19Bed.name] = hg19Bed
-hg19CoordsFp.close()
 
 
-#
-# Finally, read and process each line in the GRCh37-lite coordinate file.
 entryNumber = args.entryNumber
 fp = open(args.grch37LiteBed)
 for line in fp:
     line = line.rstrip()
     grch37LiteBed = Bed.Bed(line.split())
-    hg19Bed = hg19Coords[grch37LiteBed.name]
     gg = Gaf.GafMaProbe(grch37LiteBed, entryNumber)
 
     #
@@ -75,11 +62,12 @@ for line in fp:
     # parse the genes and gene locus strings into semicolon-delimited lists.
     geneXrefQuery = """SELECT DISTINCT geneName, grch37LiteLocus
                           FROM gafGeneXref
-                         WHERE chrom = '%s' AND chromStart <= %s
-                           AND chromEnd >= %s
-                           and strand = '%s'""" % (hg19Bed.chrom, hg19Bed.chromEnd,
-                                                   hg19Bed.chromStart,
-                                                   hg19Bed.strand)
+                         WHERE grch37LiteChrom = '%s' AND grch37LiteChromStart <= %s
+                           AND grch37LiteChromEnd >= %s
+                           and grch37LiteStrand = '%s'""" % (grch37LiteBed.chrom,
+                                                             grch37LiteBed.chromEnd,
+                                                             grch37LiteBed.chromStart,
+                                                             grch37LiteBed.strand)
     cursor.execute(geneXrefQuery)
     if (args.debug):
         print "executing query", geneXrefQuery

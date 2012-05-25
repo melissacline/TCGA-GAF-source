@@ -35,28 +35,44 @@ hg19Fp.close
 # each entry, separate the gene name and cluster ID, build a
 # GRCh37-lite locus string, and store the gene name, cluster ID,
 # gene locus string, and hg19 coordinates within separate columns.
+lineCount = 0
 grch37LiteFp = open(args.grch37LiteBed)
 for line in grch37LiteFp:
     line = line.rstrip()
-    bb = Bed.Bed(line.split())
-    assert hg19Coordinates.has_key(bb.name)
-    hg19Coords = hg19Coordinates[bb.name]
-    tokens = bb.name.split(";")
+    grch37LiteCoords = Bed.Bed(line.split())
+    print "working on", grch37LiteCoords.name
+    hg19Coords = hg19Coordinates[grch37LiteCoords.name]
+    tokens = grch37LiteCoords.name.split(";")
     clusterId = tokens.pop()
     geneName = ";".join(tokens)
-    locus = "%s:%d-%d:%s" % (bb.chrom, bb.chromStart + 1,
-                             bb.chromEnd, bb.strand)
+    locus = "%s:%d-%d:%s" % (grch37LiteCoords.chrom,
+                             grch37LiteCoords.chromStart + 1,
+                             grch37LiteCoords.chromEnd,
+                             grch37LiteCoords.strand)
     cursor.execute("""INSERT INTO gafGeneXref (geneName, grch37LiteLocus, clusterId,
-                                               chrom, chromStart, chromEnd, strand)
-                      VALUES ('%s', '%s', %s, '%s', %s, %s, '%s')""" \
-                   % (geneName, locus, clusterId, hg19Coords.chrom,
-                      hg19Coords.chromStart, hg19Coords.chromEnd, hg19Coords.strand))
+                                               hg19Chrom, hg19ChromStart,
+                                               hg19ChromEnd, hg19Strand,
+                                               grch37LiteChrom, grch37LiteChromStart,
+                                               grch37LiteChromEnd, grch37LiteStrand)
+                      VALUES ('%s', '%s', %s,
+                              '%s', %s, %s, '%s',
+                              '%s', %s, %s, '%s')""" \
+                   % (geneName, locus, clusterId,
+                      hg19Coords.chrom, str(int(hg19Coords.chromStart) + 1),
+                      hg19Coords.chromEnd, hg19Coords.strand,
+                      grch37LiteCoords.chrom, grch37LiteCoords.chromStart,
+                      grch37LiteCoords.chromEnd, grch37LiteCoords.strand ))
+    lineCount = lineCount + 1
+    if lineCount % 100 == 0:
+        print lineCount, "genes added"
 
 #
 # Merge data from entries with the same gene ID
 cursor.execute("""SELECT geneName, count(*) AS loci FROM gafGeneXref
                   GROUP BY geneName""")
+rowCount = 0
 for row in cursor.fetchall():
+    print "working on", row["geneName"], row["loci"], "entries"
     if row["loci"] > 1:
         basicGeneName = row["geneName"]
         totalCount = row["loci"]
@@ -69,16 +85,20 @@ for row in cursor.fetchall():
         for locusRow in cursor.fetchall():
             locusString = locusString + delimiter + locusRow["grch37LiteLocus"]
             delimiter = ";"
+        print "built locus string", locusString
         #
         # Rename the genes and update the locus string for all genes with
-        # this gene name.  Maintain the hg19 coordinates.
+        # this gene name.  
         counter = 1
         cursor.execute("""SELECT clusterId FROM gafGeneXref 
                           WHERE geneName = '%s'""" % (basicGeneName))
         for idRow in cursor.fetchall():
             cursor.execute("""UPDATE gafGeneXref
-                              SET geneName = '%s|%dof%d', grch37LiteLocus = '%s'
-                              WHERE clusterId = '%d'""" \
+                                 SET geneName = '%s|%dof%d', grch37LiteLocus = '%s'
+                               WHERE clusterId = '%d'""" \
                            % (basicGeneName, counter, totalCount,
                               locusString, idRow["clusterId"]))
             counter = counter + 1
+    rowCount = rowCount + 1
+    if rowCount % 10 == 0:
+        print rowCount, "loci verified/updated"

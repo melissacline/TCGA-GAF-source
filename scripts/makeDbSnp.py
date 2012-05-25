@@ -49,8 +49,8 @@ def mapSnpToLocus(bedData, snpInfo, cursor):
             searchStart = searchStart - 500
         else:
             searchEnd = searchEnd + 500
-    searchQuery = """select * from gafGeneXref where chrom = '%s'
-                       and chromStart <= %d and chromEnd >= %d""" \
+    searchQuery = """select * from gafGeneXref where grch37LiteChrom = '%s'
+                       and grch37LiteChromStart <= %d and grch37LiteChromEnd >= %d""" \
                        % (bedData.chrom, searchStart, searchEnd)
     cursor.execute(searchQuery)
     #
@@ -61,9 +61,11 @@ def mapSnpToLocus(bedData, snpInfo, cursor):
     locusString = ""
     delimiter = ""
     for row in cursor.fetchall():
-        geneString = "%s%s%s" % (geneString, delimiter, row['geneName'])
-        locusString = "%s%s%s" % (locusString, delimiter, row['grch37LiteLocus'])
-        delimiter = ";"
+        if not re.search(re.sub("\?", "\?", row['geneName']), geneString):
+            geneString = "%s%s%s" % (geneString, delimiter, row['geneName'])
+            locusString = "%s%s%s" % (locusString, delimiter,
+                                      row['grch37LiteLocus'])
+            delimiter = ";"
     return((geneString, locusString))
     
     
@@ -93,7 +95,7 @@ entryNumber = args.entryNumber
 # GRCh37-lite file, read to the corresponding entry in the hg19 file.
 # If we read to the end of the hg19 file without finding the
 # entry we're looking for, print out a big error message.
-hg19Fp = open(args.hg19Bed)
+#hg19Fp = open(args.hg19Bed)
 grch37LiteFp = open(args.grch37LiteBed)
 for grch37LiteRow in grch37LiteFp:
     grch37LiteBed = Bed.Bed(grch37LiteRow.rstrip().split())
