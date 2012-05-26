@@ -392,21 +392,29 @@ ${gafDir}/miRNA.pre-miRNA.gaf:	${gafDir}/miRNA.genome.gaf ${gafDir}/pre-miRNA.ge
 # dbSNP
 #
 
+#
+# When comparing SNPs
+# - don't look at any SNPs with multiple alignments, since it cannot be 
+#   guaranteed that the alignments appear in the same order in the 
+#   old and new versions.  To test this, look for a strand indicator 
+#   followed immediately by a semicolon, i.e. :+; or :-;
 ${testOutput}/dbSNP.genome.diff: ${testInput}/dbSNP.genome.2.1.gaf ${testInput}/dbSNP.genome.3.0.gaf
-	cat ${testInput}/dbSNP.genome.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' > ${scratchDir}/dbSNP.genome.2.1.subset
-	cat ${testInput}/dbSNP.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' > ${scratchDir}/dbSNP.genome.3.0.subset
+	-cat ${testInput}/dbSNP.genome.2.1.gaf \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' \
+        | grep -v -e ":[+|-];"  > ${scratchDir}/dbSNP.genome.2.1.subset
+	-cat ${testInput}/dbSNP.genome.3.0.gaf \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' \
+        | grep -v ":[+|-];" > ${scratchDir}/dbSNP.genome.3.0.subset
 	diff ${scratchDir}/dbSNP.genome.2.1.subset ${scratchDir}/dbSNP.genome.3.0.subset > $@
 
-${testInput}/dbSNP.genome.3.0.gaf:	${inputDir}/dbSNP-test.bed
+${testInput}/dbSNP.genome.3.0.gaf:	${inputDir}/dbSNP-test.genome.bed
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< \
 	|sort -k2,2 |scripts/combineSnps.py > $@ 
 
-#${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSNP.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
-#	cat ${testDir}/testDbSNP.txt \
-#	| awk '{ print "grep \"" $$1 "|\" ${scratchDir}/dbSNP.gaf21.gaf"}'  | bash > $@
+${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSnp.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
+	cat ${testDir}/testDbSnp.txt \
+	| awk '{ print "grep \"" $$1 "|\" ${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
 
 ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	zcat ${gaf21File} \
@@ -433,20 +441,22 @@ data/MAprobe.hg19.bed:	${gafDir}/MAprobe.genome.gaf
 #   in increasing order w.r.t. the positive strand)
 # - entries with multiple alignments, because there's no guarantee that we'll combine
 #   the composite strings in the same order as the old data.
+# - don't look at the gene ($$16) or gene locus ($$17) fields, which didn't
+#   seem to be populated in the gaf2.1 data
 #
 ${testOutput}/MAprobe.genome.diff:	${testInput}/MAprobe.genome.2.1.gaf ${testInput}/MAprobe.genome.3.0.gaf
 	cat ${testInput}/MAprobe.genome.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15 }' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$18, $$19 }' \
         | grep -v ";" |grep -v ":-" |sort > ${scratchDir}/MAprobe.genome.2.1.subset
 	cat ${testInput}/MAprobe.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15 }' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$18, $$19 }' \
         |grep -v ";" |grep -v ":-" |sort > ${scratchDir}/MAprobe.genome.3.0.subset
 	diff ${scratchDir}/MAprobe.genome.2.1.subset ${scratchDir}/MAprobe.genome.3.0.subset > $@
 
 
 ${testInput}/MAprobe.genome.3.0.gaf:	${gafDir}/MAprobe.genome.gaf ${testDir}/testMaProbe.txt
 	cat ${testDir}/testMaProbe.txt \
-	| awk '{ print "grep", $$1, "${gafDir}/MAprobe.genome.gaf"}' \
+	| awk '{ print "grep -w", $$1, "${gafDir}/MAprobe.genome.gaf"}' \
         | bash > $@
 
 ${gafDir}/MAprobe.genome.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/gene.genome.gaf
@@ -458,7 +468,7 @@ ${scratchDir}/MAprobe.genome.raw.gaf:	${inputDir}/MAprobe.genome.bed
 
 ${testInput}/MAprobe.genome.2.1.gaf:	${scratchDir}/MAprobe.genome.gaf21.gaf ${testDir}/testMaProbe.txt 
 	cat ${testDir}/testMaProbe.txt \
-	| awk '{ print "grep", $$1, "${scratchDir}/MAprobe.genome.gaf21.gaf"}' \
+	| awk '{ print "grep -w", $$1, "${scratchDir}/MAprobe.genome.gaf21.gaf"}' \
         | bash > $@
 
 #${testDir}/testMaProbe.txt: 
@@ -510,7 +520,7 @@ ${gafDir}/MAprobe.pre-miRNA.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/
 	data/GRCh37-lite/GRCh37-lite.hg19.over.chain \
 	${scratchDir}/pre-miRNA.genome.hg19.bed /dev/null
 	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf \
-	${gafDir}/pre-miRNA.genome.gaf ${scratchDir}/pre-miRNA.genome.hg19.bed > $@
+	${gafDir}/pre-miRNA.genome.gaf > $@
 
 
 
@@ -529,7 +539,7 @@ ${scratchDir}/MAprobe.pre-miRNA.gaf21.gaf:
 #   coordinates will be in reverse order.  So, don't look at the composite coordinates.
 # That doesn't leave much...
 #
-${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput}/MAprobe.miRNA.3.0.gaf
+${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput}/MAprobe.miRNA.3.0.gaf 
 	cat ${testInput}/MAprobe.miRNA.2.1.gaf \
 	| awk -F'\t' '{ split($$8, tokens, "|"); $$8 = tokens[2];  print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$13, $$14, $$16 }' \
 	|sort |uniq > ${scratchDir}/MAprobe.miRNA.2.1.subset
@@ -538,16 +548,15 @@ ${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput
 	|sort |uniq > ${scratchDir}/MAprobe.miRNA.3.0.subset
 	diff -i ${scratchDir}/MAprobe.miRNA.2.1.subset ${scratchDir}/MAprobe.miRNA.3.0.subset > $@
 
-${testInput}/MAprobe.miRNA.3.0.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf 
-	- cat ${scratchDir}/MAprobe.miRNA.gaf21.gaf \
-	| awk -F'\t' '{ split($$8, tokens, "|"); print "grep " $$2 ".*" tokens[2] " ${gafDir}/MAprobe.miRNA.gaf"}' \
-	| bash |sort |uniq > $@	
+${testInput}/MAprobe.miRNA.3.0.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf ${testDir}/MAprobe.miRNA.test.txt
+	cat ${testDir}/MAprobe.miRNA.test.txt \
+	| awk '{ print "grep", $$1 ".*" $$2, "${gafDir}/MAprobe.miRNA.gaf" }' |bash |sort |uniq > $@
+
 
 
 ${testInput}/MAprobe.miRNA.2.1.gaf:     ${scratchDir}/MAprobe.miRNA.gaf21.gaf ${gafDir}/MAprobe.miRNA.gaf
-	- cat ${gafDir}/MAprobe.miRNA.gaf \
-	| awk -F'\t' '{ split($$8, tokens, "|"); print "grep " $$2 ".*" tokens[2] " ${scratchDir}/MAprobe.miRNA.gaf21.gaf"}' \
-	| bash |sort |uniq > $@	
+	cat ${testDir}/MAprobe.miRNA.test.txt \
+	| awk '{ print "grep", $$1 ".*" $$2, "${scratchDir}/MAprobe.miRNA.gaf21.gaf" }' |bash |sort |uniq > $@
 
 
 ${gafDir}/MAprobe.miRNA.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/miRNA.genome.gaf ${inputDir}/miRNA.genome.bed
@@ -583,7 +592,7 @@ ${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/testTranscripts.txt ${sc
 	| bash |sort -k2,2  > $@       
 
 ${gafDir}/MAprobe.transcript.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf ${inputDir}/transcript.genome.bed
-	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf ${inputDir}/transcript.genome.bed > $@
+	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf > $@
 
 ${scratchDir}/MAprobe.transcript.gaf21.gaf:
 	zcat ${gaf21File} \

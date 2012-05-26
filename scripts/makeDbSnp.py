@@ -95,7 +95,7 @@ entryNumber = args.entryNumber
 # GRCh37-lite file, read to the corresponding entry in the hg19 file.
 # If we read to the end of the hg19 file without finding the
 # entry we're looking for, print out a big error message.
-#hg19Fp = open(args.hg19Bed)
+hg19Fp = open(args.hg19Bed)
 grch37LiteFp = open(args.grch37LiteBed)
 for grch37LiteRow in grch37LiteFp:
     grch37LiteBed = Bed.Bed(grch37LiteRow.rstrip().split())

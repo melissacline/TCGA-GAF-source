@@ -89,6 +89,12 @@ for line in compositeGafFp:
         maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
         maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:
+            #
+            # Unlike other feature-composite mappings, this time we'll take the
+            # gene and gene locus fields from the composite instead of the
+            # feature (i.e. instead of the probe)
+            maProbeToCompositeGaf.gene = compositeGaf.gene
+            maProbeToCompositeGaf.geneLocus = compositeGaf.geneLocus
             entryNumber = entryNumber + 1
             maProbeToCompositeGaf.entryNumber = entryNumber
             maProbeToCompositeGaf.write(sys.stdout)
