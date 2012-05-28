@@ -46,6 +46,7 @@ args = parser.parse_args()
 
 entryNumber = args.entryNumber
 
+
 #
 # First, read the maProbe GAF data into a dictionary.  One probe can have
 # many alignments, so use a key based on the name and coordinates.
@@ -59,8 +60,6 @@ for line in maProbeGafFp:
     maChromEnd = maCoordinateString.split("-")[-1]
     key = "%s:%s:%s-%s:%s" % (maProbeGaf.featureId, maChrom, maChromStart, maChromEnd,
                               maStrand)
-    if args.debug:
-        print "saving", key
     maProbe[key] = maProbeGaf
 maProbeGafFp.close()
 
@@ -74,12 +73,11 @@ compositeGafFp = open(args.compositeGaf)
 for line in compositeGafFp:
     compositeGaf = Gaf.Gaf()
     compositeGaf.setFields(line.rstrip().split("\t"))
+    if args.debug:
+        print "working on", compositeGaf
     (cgChrom, cgCoordinateString, cgStrand) = compositeGaf.compositeCoordinates.split(":")
     cgCoordStart = cgCoordinateString.split("-")[0]
     cgCoordEnd = cgCoordinateString.split("-")[-1]
-    if args.debug:
-        print "from composite gaf coordinates", compositeGaf.compositeCoordinates, \
-              "parsed", cgChrom, cgCoordStart, cgCoordEnd, cgStrand
     overlappingMaProbeNames = findOverlappingMaProbes(cgChrom, cgCoordStart, cgCoordEnd,
                                                       cgStrand, cursor, args.debug)
     for maProbeEntry in overlappingMaProbeNames:
@@ -87,7 +85,8 @@ for line in compositeGafFp:
             print "workng on probe", maProbeEntry
         maProbeGaf = maProbe[maProbeEntry]
         maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
-        maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf)
+        maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf, mergeAdjacent=True,
+                                     debug=args.debug)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:
             #
             # Unlike other feature-composite mappings, this time we'll take the

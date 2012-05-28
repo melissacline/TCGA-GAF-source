@@ -398,22 +398,27 @@ ${gafDir}/miRNA.pre-miRNA.gaf:	${gafDir}/miRNA.genome.gaf ${gafDir}/pre-miRNA.ge
 #   guaranteed that the alignments appear in the same order in the 
 #   old and new versions.  To test this, look for a strand indicator 
 #   followed immediately by a semicolon, i.e. :+; or :-;
+# - for now, don't look at the gene or gene locus field.  The reason: too many
+#   genes are changed between builds, and while we really should screen for 
+#   SNPs with annotations of unchanged genes or no genes, we'll have to settle
+#   for not looking at fields 15 and 16.
 ${testOutput}/dbSNP.genome.diff: ${testInput}/dbSNP.genome.2.1.gaf ${testInput}/dbSNP.genome.3.0.gaf
 	-cat ${testInput}/dbSNP.genome.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$18, $$19}' \
         | grep -v -e ":[+|-];"  > ${scratchDir}/dbSNP.genome.2.1.subset
 	-cat ${testInput}/dbSNP.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$18, $$19}' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$18, $$19}' \
         | grep -v ":[+|-];" > ${scratchDir}/dbSNP.genome.3.0.subset
 	diff ${scratchDir}/dbSNP.genome.2.1.subset ${scratchDir}/dbSNP.genome.3.0.subset > $@
 
 ${testInput}/dbSNP.genome.3.0.gaf:	${inputDir}/dbSNP-test.genome.bed
-	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< \
-	|sort -k2,2 |scripts/combineSnps.py > $@ 
+	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratcqhDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
+	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP-test.genome.raw.gaf
+	cat ${scratchDir}/dbSNP-test.genome.raw.gaf \
+        |sort -k2,2 |scripts/combineSnps.py > $@ 
 
 ${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSnp.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
-	cat ${testDir}/testDbSnp.txt \
+	-cat ${testDir}/testDbSnp.txt \
 	| awk '{ print "grep \"" $$1 "|\" ${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
 
 ${scratchDir}/dbSNP.genome.gaf21.gaf:
@@ -581,15 +586,26 @@ ${testOutput}/MAprobe.transcript.diff:	${testInput}/MAprobe.transcript.2.1.gaf $
         > ${scratchDir}/MAprobe.transcript.3.0.subset
 	diff ${scratchDir}/MAprobe.transcript.2.1.subset ${scratchDir}/MAprobe.transcript.3.0.subset > $@
 
-${testInput}/MAprobe.transcript.3.0.gaf:     ${testDir}/testTranscripts.txt ${gafDir}/MAprobe.transcript.gaf 
-	cat ${testDir}/testTranscripts.txt \
-       | awk '{ print "grep \"" $$1 "\" ${gafDir}/MAprobe.transcript.gaf"}'  \
-	| bash |sort -k2,2 > $@       
+${testInput}/MAprobe.transcript.3.0.gaf:     ${testDir}/testTranscripts.txt ${testDir}/testMaProbe.txt ${gafDir}/MAprobe.transcript.gaf 
+	-cat ${testDir}/testTranscripts.txt \
+	| awk '{ print "grep \"" $$1 "\" ${gafDir}/MAprobe.transcript.gaf"}'  \
+	| bash > ${scratchDir}/MAprobe.transcript.3.0.superset.gaf
+	-cat ${testDir}/testMaProbe.txt \
+	|awk '{ print "grep -w", $$1, "${scratchDir}/MAprobe.transcript.3.0.superset.txt"}' \
+	|bash  > $@       
 
-${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/testTranscripts.txt ${scratchDir}/MAprobe.genome.gaf21.gaf                                
-	cat ${testDir}/testTranscripts.txt \
-       | awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.transcript.gaf21.gaf"}'\
-	| bash |sort -k2,2  > $@       
+${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/testTranscripts.txt ${testDir}/testMaProbe.txt ${scratchDir}/MAprobe.genome.gaf21.gaf                                
+	-cat ${testDir}/testTranscripts.txt \
+	| awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.transcript.gaf21.gaf"}'  \
+	| bash > ${scratchDir}/MAprobe.transcript.2.1.superset.gaf
+	-cat ${testDir}/testMaProbe.txt \
+	|awk '{ print "grep -w", $$1, "${scratchDir}/MAprobe.transcript.2.1.superset.txt"}' \
+	|bash  > $@       
+
+#
+# cat data/test/testMaProbe.txt \
+# |awk '{ print "grep", $1, "data/scratch/MAprobe.transcript.gaf21.gaf"}' \
+# |bash |awk -F'\t' '{ print $2, $8}' > data/test/MAprobe.transcript.test.txt
 
 ${gafDir}/MAprobe.transcript.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf ${inputDir}/transcript.genome.bed
 	scripts/maProbeToComposite.py ${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf > $@
