@@ -13,6 +13,9 @@ LOAD DATA LOCAL INFILE "/cluster/home/cline/projects/TCGA-GAF-source/data/test/M
     FIELDS TERMINATED BY ' '
 ;
 
-SELECT g.* FROM gafMaProbeTranscriptData g, tmpUnchangedTranscripts t
-  WHERE g.transcript = t.name
+SELECT g.* FROM gafMaProbeTranscriptData g, tmpUnchangedTranscripts t,
+                maProbe m, knownGene k
+  WHERE g.transcript = t.name AND g.transcript = k.name
+    AND g.probeName = m.name AND m.strand = k.strand
+   
 ;

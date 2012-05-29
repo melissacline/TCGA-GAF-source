@@ -3,21 +3,61 @@
 import argparse
 from pycbio.hgdata import Bed
 import Gaf
+import MySQLdb
+import MySQLdb.cursors
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('inputBed', type=str, 
-                    help="Input bed file")
+parser.add_argument('affySnpBed', type=str, 
+                    help="Affy SNP data in GRCh37-lite coordinates")
+parser.add_argument('oldAffySnpGaf', type=str, 
+                    help="Gaf 2.1 file with AffySnp-Genome records")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
 args = parser.parse_args()
 
+db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
+                     passwd="S3attl3-S7u")
+cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
 entryNumber = args.entryNumber
-fp = open(args.inputBed)
+
+#
+# Make a dictionary of the old entries.
+oldAffySnp = dict()
+oldAffySnpGafFp = open(args.oldAffySnpGaf)
+for line in oldAffySnpGafFp:
+    oldAffySnpGaf = Gaf.Gaf()
+    oldAffySnpGaf.setFields(line.rstrip().split("\t"))
+    oldAffySnp[oldAffySnpGaf.featureId] = oldAffySnpGaf
+oldAffySnpGafFp.close()
+
+fp = open(args.affySnpBed)
 for line in fp:
-    line = line.rstrip()
+    #
+    # Get the basic fields from the BED data
     bb = Bed.Bed(line.split())
     gg = Gaf.GafAffySnp(bb, entryNumber)
+    #
+    # From the old GAF data, get the featureInfo string
+    gg.featureInfo = oldAffySnp[gg.featureId].featureInfo
+    #
+    # Look up the gene and gene locus for these coordinates
+    gg.gene = ""
+    gg.geneLocus = ""
+    geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
+                        WHERE grch37LiteChrom = '%s'
+                          AND grch37LiteChromStart >= %d
+                          AND grch37LiteChromEnd <= %d""" % (bb.chrom,
+                                                             bb.chromStart,
+                                                             bb.chromEnd)
+    cursor.execute(geneXrefQuery)
+    delimiter=""
+    for row in cursor.fetchall():
+        gg.gene = "%s%s%s" % (gg.gene, delimiter, row["geneName"])
+        gg.geneLocus = "%s%s%s" % (gg.geneLocus, delimiter,
+                                   row["grch37LiteLocus"])
+        delimiter = ","
     entryNumber = entryNumber + 1
     gg.write(sys.stdout)
 exit(entryNumber)

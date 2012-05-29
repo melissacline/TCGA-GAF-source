@@ -412,10 +412,16 @@ ${testOutput}/dbSNP.genome.diff: ${testInput}/dbSNP.genome.2.1.gaf ${testInput}/
 	diff ${scratchDir}/dbSNP.genome.2.1.subset ${scratchDir}/dbSNP.genome.3.0.subset > $@
 
 ${testInput}/dbSNP.genome.3.0.gaf:	${inputDir}/dbSNP-test.genome.bed
-	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratcqhDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP-test.genome.raw.gaf
-	cat ${scratchDir}/dbSNP-test.genome.raw.gaf \
-        |sort -k2,2 |scripts/combineSnps.py > $@ 
+	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed /dev/null
+	scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< > $@
+	#scripts/makeDbSnp.py ${scratchDir}/dbSNP-test.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP-test.genome.raw.gaf
+	#cat ${scratchDir}/dbSNP-test.genome.raw.gaf \
+        #|sort -k2,2 |scripts/combineSnps.py > $@ 
+
+${inputDir}/dbSNP-test.genome.bed: ${testDir}/testDbSnp.txt
+	-cat $< \
+        | awk '{ print "grep -w \"" $$1 "\" ${inputDir}/dbSNP.genome.bed"}' \
+	| bash > $@
 
 ${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSnp.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
 	-cat ${testDir}/testDbSnp.txt \
@@ -425,7 +431,11 @@ ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "dbSNP" && $$9 == "genome" { print }' > $@
 
-${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.bed ${gafDir}/gene.genome.gaf
+#${testDir}/testDbSnp.txt:
+#	head -500 ${scratchDir}/dbSNP.genome.gaf21.gaf \
+#	| awk -F'\t' '$15 !~ ";" { print $2 }' > $@
+
+${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.genome.bed ${gafDir}/gene.genome.gaf
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeDbSnp.py ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed $< > ${scratchDir}/dbSNP.raw.gaf
 	rm ${scratchDir}/dbSNP.genome.preGaf.GRCh37-lite.bed
@@ -576,31 +586,29 @@ ${scratchDir}/MAprobe.miRNA.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "MAprobe" && $$9 == "miRNA" { print }' > $@
 #
-
+# When comparing the MAprobe and transcript mappings, look only at mappings on
+# the same strand (this is implicit in the construction of the test set) and
+# don't look at the gene locus, which has changed for many transcripts.
+#
 ${testOutput}/MAprobe.transcript.diff:	${testInput}/MAprobe.transcript.2.1.gaf ${testInput}/MAprobe.transcript.3.0.gaf
 	cat ${testInput}/MAprobe.transcript.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
-        > ${scratchDir}/MAprobe.transcript.2.1.subset
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15 }' \
+        |sort |uniq > ${scratchDir}/MAprobe.transcript.2.1.subset
 	cat ${testInput}/MAprobe.transcript.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15, $$16 }' \
-        > ${scratchDir}/MAprobe.transcript.3.0.subset
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$11, $$13, $$14, $$15 }' \
+        |sort |uniq > ${scratchDir}/MAprobe.transcript.3.0.subset
 	diff ${scratchDir}/MAprobe.transcript.2.1.subset ${scratchDir}/MAprobe.transcript.3.0.subset > $@
 
-${testInput}/MAprobe.transcript.3.0.gaf:     ${testDir}/testTranscripts.txt ${testDir}/testMaProbe.txt ${gafDir}/MAprobe.transcript.gaf 
-	-cat ${testDir}/testTranscripts.txt \
-	| awk '{ print "grep \"" $$1 "\" ${gafDir}/MAprobe.transcript.gaf"}'  \
-	| bash > ${scratchDir}/MAprobe.transcript.3.0.superset.gaf
-	-cat ${testDir}/testMaProbe.txt \
-	|awk '{ print "grep -w", $$1, "${scratchDir}/MAprobe.transcript.3.0.superset.txt"}' \
-	|bash  > $@       
+${testInput}/MAprobe.transcript.3.0.gaf: ${testDir}/MAprobe.transcript.test.txt ${gafDir}/MAprobe.transcript.gaf 
+	-cat ${testDir}/MAprobe.transcript.test.txt \
+	| awk '{ print "grep \"" $$1 ".*" $$2 "\" ${gafDir}/MAprobe.transcript.gaf"}'  \
+	| bash > $@       
 
-${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/testTranscripts.txt ${testDir}/testMaProbe.txt ${scratchDir}/MAprobe.genome.gaf21.gaf                                
-	-cat ${testDir}/testTranscripts.txt \
-	| awk '{ print "grep \"" $$1 "\" ${scratchDir}/MAprobe.transcript.gaf21.gaf"}'  \
-	| bash > ${scratchDir}/MAprobe.transcript.2.1.superset.gaf
-	-cat ${testDir}/testMaProbe.txt \
-	|awk '{ print "grep -w", $$1, "${scratchDir}/MAprobe.transcript.2.1.superset.txt"}' \
-	|bash  > $@       
+${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/MAprobe.transcript.test.txt ${scratchDir}/MAprobe.genome.gaf21.gaf                                
+	-cat ${testDir}/MAprobe.transcript.test.txt \
+	| awk '{ print "grep \"" $$1 ".*" $$2 "\" ${scratchDir}/MAprobe.transcript.gaf21.gaf"}'  \
+	| bash > $@       
+
 
 #
 # cat data/test/testMaProbe.txt \
@@ -614,10 +622,38 @@ ${scratchDir}/MAprobe.transcript.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "MAprobe" && $$9 == "transcript" { print }' > $@
 
+#
+# When comparing the MAprobe and transcript mappings, look only at mappings on
+# the same strand (this is implicit in the construction of the test set) and
+# don't look at the gene locus, which has changed for many transcripts.
+#
+${testOutput}/AffySNP.genome.diff:	${testInput}/AffySNP.genome.2.1.gaf ${testInput}/AffySNP.genome.3.0.gaf
+	cat ${testInput}/AffySNP.genome.2.1.gaf \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17, $$18 }' \
+        |sort |uniq > ${scratchDir}/AffySNP.genome.2.1.subset
+	cat ${testInput}/AffySNP.genome.3.0.gaf \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17, $$18 }' \
+        |sort |uniq > ${scratchDir}/AffySNP.genome.3.0.subset
+	diff ${scratchDir}/AffySNP.genome.2.1.subset ${scratchDir}/AffySNP.genome.3.0.subset > $@
+
+${testInput}/AffySNP.genome.3.0.gaf: ${testDir}/testAffySNP.txt ${gafDir}/AffySNP.genome.gaf 
+	cat ${testDir}/testAffySNP.txt \
+	| awk '{ print "grep -w \"" $$1 "\" ${gafDir}/AffySNP.genome.gaf"}'  \
+	| bash > $@       
+
+${testInput}/AffySNP.genome.2.1.gaf:     ${testDir}/testAffySNP.txt ${scratchDir}/AffySNP.genome.gaf21.gaf                                
+	cat ${testDir}/testAffySNP.txt \
+	| awk '{ print "grep -w \"" $$1  "\" ${scratchDir}/AffySNP.genome.gaf21.gaf"}'  \
+	| bash > $@       
+
 ${scratchDir}/AffySNP.genome.gaf21.gaf: 
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "AffySNP" && $$9 == "genome" { print }' > $@
 
-${gafDir}/AffySNP.genome.gaf:	${scratchDir}/AffySNP.genome.gaf21.gaf ${gafDir}/gene.genome.gaf
-	cp $< $@
+${gafDir}/AffySNP.genome.gaf: ${inputDir}/AffySNP.genome.bed
+	liftOver $< data/GRCh37-lite/GRCh37-lite.hg19.over.chain \
+	${scratchDir}/AffySNP.genome.preGaf.GRCh37-lite.bed /dev/null
+	scripts/makeAffySnp.py ${scratchDir}/AffySNP.genome.preGaf.GRCh37-lite.bed \
+	${scratchDir}/AffySNP.genome.gaf21.gaf > $@
+
 

@@ -111,4 +111,4 @@ for grch37LiteRow in grch37LiteFp:
     entryNumber = entryNumber + 1
     gg.entryNumber = entryNumber
     gg.write(sys.stdout)
-exit(entryNumber)
+exit(0)
