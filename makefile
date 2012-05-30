@@ -623,16 +623,15 @@ ${scratchDir}/MAprobe.transcript.gaf21.gaf:
 	| awk -F'\t' '$$3 == "MAprobe" && $$9 == "transcript" { print }' > $@
 
 #
-# When comparing the MAprobe and transcript mappings, look only at mappings on
-# the same strand (this is implicit in the construction of the test set) and
-# don't look at the gene locus, which has changed for many transcripts.
+# When looking at the SNPs, don't look at the gene and gene locus strings
+# ($16 and $17) since many have changed.
 #
 ${testOutput}/AffySNP.genome.diff:	${testInput}/AffySNP.genome.2.1.gaf ${testInput}/AffySNP.genome.3.0.gaf
 	cat ${testInput}/AffySNP.genome.2.1.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17, $$18 }' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$18 }' \
         |sort |uniq > ${scratchDir}/AffySNP.genome.2.1.subset
 	cat ${testInput}/AffySNP.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17, $$18 }' \
+	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$9, $$10, $$12, $$13, $$14, $$15, $$18 }' \
         |sort |uniq > ${scratchDir}/AffySNP.genome.3.0.subset
 	diff ${scratchDir}/AffySNP.genome.2.1.subset ${scratchDir}/AffySNP.genome.3.0.subset > $@
 

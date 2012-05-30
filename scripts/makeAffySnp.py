@@ -47,10 +47,10 @@ for line in fp:
     gg.geneLocus = ""
     geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                         WHERE grch37LiteChrom = '%s'
-                          AND grch37LiteChromStart >= %d
-                          AND grch37LiteChromEnd <= %d""" % (bb.chrom,
-                                                             bb.chromStart,
-                                                             bb.chromEnd)
+                          AND grch37LiteChromStart <= %d
+                          AND grch37LiteChromEnd >= %d""" % (bb.chrom,
+                                                             bb.chromEnd,
+                                                             bb.chromStart)
     cursor.execute(geneXrefQuery)
     delimiter=""
     for row in cursor.fetchall():
@@ -60,4 +60,4 @@ for line in fp:
         delimiter = ","
     entryNumber = entryNumber + 1
     gg.write(sys.stdout)
-exit(entryNumber)
+exit(0)
