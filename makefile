@@ -10,36 +10,66 @@ testOutput = ${testDir}/output
 transcriptTestFields = 2-5,8-9,11-13
 geneTestFields = 2-5,7,9-10,12-17
 
+#
+# Genes, transcripts, exons, junctions
+geneSetGaf = ${gafDir}/gene.genome.gaf ${gafDir}/transcript.genome.gaf \
+	${gafDir}/transcript.gene.gaf \
+	${gafDir}/compositeExon.genome.gaf ${gafDir}/compositeExon.gene.gaf \
+	${gafDir}/compositeExon.transcript.gaf \
+        ${gafDir}/componentExon.genome.gaf ${gafDir}/componentExon.gene.gaf \
+	${gafDir}/componentExon.transcript.gaf \
+	${gafDir}/junction.genome.gaf ${gafDir}/junction.transcript.gaf 
 
-geneSetContents = ${gafDir}/gene.genome.gaf ${gafDir}/transcript.genome.gaf \
-	${gafDir}/compositeExon.genome.gaf ${gafDir}/componentExon.genome.gaf \
-	${gafDir}/junction.genome.gaf \
-	${gafDir}/compositeExon.gene.gaf ${gafDir}/compositeExon.transcript.gaf \
-	${gafDir}/componentExon.gene.gaf ${gafDir}/componentExon.transcript.gaf \
-	${gafDir}/junction.transcript.gaf
+geneSetDiff = ${testOutput}/gene.genome.diff ${testOutput}/transcript.genome.diff \
+	${testOutput}/compositeExon.transcript.diff ${testOutput}/componentExon.transcript.diff \
+	${testOutput}/junction.transcript.diff
 
-miRnaSetContents = ${gafDir}/pre-miRNA.genome.gaf ${gafDir}/miRNA.genome.gaf \
-	${gafDir}/miRNA.pre-miRNA.gaf
+geneSetBB = ${outputBedDir}/gene.genome.bb ${outputBedDir}/transcript.genome.bb \
+	${outputBedDir}/compositeExon.genome.bb ${outputBedDir}/componentExon.genome.bb \
+	${outputBedDir}/junction.genome.bb 
 
-all:	${gafDir}/geneSet.gaf \
-	${outputBedDir}/gene.genome.bb ${outputBedDir}/compositeExon.genome.bb \
-	${outputBedDir}/componentExon.genome.bb ${outputBedDir}/transcript.genome.bb \
-	${outputBedDir}/junction.genome.bb \
-	${testOutput}/transcript.genome.diff ${testOutput}/gene.genome.diff \
-	${testOutput}/transcript.gene.diff ${gafDir}/transcript.gene.gaf \
-	${testOutput}/compositeExon.transcript.diff \
-	${testOutput}/componentExon.transcript.diff \
-	${testOutput}/junction.transcript.diff \
-	${gafDir}/miRnaSet.gaf \
-	${outputBedDir}/pre-miRNA.genome.bb ${outputBedDir}/miRNA.genome.bb \
-        ${testOutput}/pre-miRNA.genome.diff ${testOutput}/miRNA.genome.diff \
-        ${testOutput}/miRNA.pre-miRNA.diff \
-        ${outputBedDir}/MAprobe.genome.bb ${testOutput}/MAprobe.genome.diff \
-        ${outputBedDir}/AffySNP.genome.bb \
-	${outputBedDir}/dbSNP.genome.bb ${testOutput}/dbSNP.genome.diff 
+geneSet = ${geneSetGaf} ${geneSetDiff} ${geneSetBB}
 
-${gafDir}/geneSet.gaf:	${geneSetContents}
-	cat ${geneSetContents} | awk '{$$1 = NR; print}' > $@
+#
+# Pre-miRNAs, miRNAs
+miRnaSetGaf = ${gafDir}/pre-miRNA.genome.gaf ${gafDir}/miRNA.genome.gaf \
+	${gafDir}/miRNA.pre-miRNA.gaf 
+
+miRnaSetDiff = ${testOutput}/pre-miRNA.genome.diff ${testOutput}/miRNA.genome.diff \
+	${testOutput}/miRNA.pre-miRNA.diff
+
+miRnaSetBB = ${outputBedDir}/pre-miRNA.genome.bb ${outputBedDir}/miRNA.genome.bb 
+
+miRnaSet = ${miRnaSetGaf} ${miRnaSetDiff} ${miRnaSetBB}
+
+#
+# Probe sets
+probeSetGaf = ${gafDir}/MAprobe.genome.gaf ${gafDir}/MAprobe.transcript.gaf \
+	${gafDir}/MAprobe.pre-miRNA.gaf ${gafDir}/MAprobe.miRNA.gaf ${gafDir}/AffySNP.genome.gaf
+
+probeSetDiff = ${testOutput}/MAprobe.genome.diff ${testOutput}/MAprobe.transcript.diff \
+	${testOutput}/MAprobe.pre-miRNA.diff ${testOutput}/MAprobe.miRNA.diff \
+	${testOutput}/AffySNP.genome.diff
+
+probeSetBB = ${outputBedDir}/MAprobe.genome.bb 
+
+probeSet = ${probeSetGaf} ${probeSetDiff} ${probeSetBB}
+
+snpSetGaf = ${gafDir}/dbSNP.genome.gaf
+snpSetDiff = ${testOutput}/dbSNP.genome.diff
+snpSetBB = ${testOutput}/dbSNP.genome.bb
+
+supersetGaf = ${gafDir}/geneSet.gaf ${gafDir}/miRnaSet.gaf ${gafDir}/probeSet.gaf \
+	${gafDir}/dbSNP.genome.gaf
+
+
+all:	${geneSet} ${miRnaSet} ${probeSet} ${snpSet} ${gafDir}/superset.gaf 
+
+${gafDir}/superset.gaf: ${supersetGaf}
+	cat ${supersetGaf} | cut -f2- |perl -pe '$$_ = "$$.\t$$_"' > $@
+
+${gafDir}/geneSet.gaf:	${geneSetGaf}
+	cat ${geneSetGaf} | cut -f2- |perl -pe '$$_ = "$$.\t$$_"' > $@
 
 ${testOutput}/gene.genome.diff:	${testInput}/gene.genome.2.1.gaf ${testInput}/gene.genome.3.0.gaf
 	cat ${testInput}/gene.genome.2.1.gaf \
@@ -70,7 +100,6 @@ ${gafDir}/gene.genome.gaf:	${inputDir}/gene.genome.bed
 	scripts/geneToGeneXref.py $< ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed
 	scripts/makeGeneSet.py ${scratchDir}/gene.genome.preGaf.GRCh37-lite.bed |sort -k2,2 > $@ 
 
-
 ${testOutput}/transcript.genome.diff:	${testInput}/transcript.genome.2.1.gaf ${testInput}/transcript.genome.3.0.gaf
 	cat ${testInput}/transcript.genome.2.1.gaf \
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$9, $$10, $$12, $$13, $$14, $$15 }' \
@@ -80,11 +109,9 @@ ${testOutput}/transcript.genome.diff:	${testInput}/transcript.genome.2.1.gaf ${t
         > ${scratchDir}/transcript.genome.3.0.subset
 	diff ${scratchDir}/transcript.genome.2.1.subset ${scratchDir}/transcript.genome.3.0.subset > $@
 
-
 ${testInput}/transcript.genome.3.0.gaf:	${gafDir}/transcript.genome.gaf ${testDir}/testTranscripts.txt
 	cat ${testDir}/testTranscripts.txt \
 	| awk '{ print "grep", $$1, "${gafDir}/transcript.genome.gaf"}' |bash > $@
-
 
 ${testInput}/transcript.genome.2.1.gaf:	${testDir}/testTranscripts.txt ${scratchDir}/transcript.genome.gaf21.gaf
 	cat ${testDir}/testTranscripts.txt \
@@ -94,12 +121,9 @@ ${scratchDir}/transcript.genome.gaf21.gaf:
 	zcat ${gaf21File} \
 	| awk -F'\t' '$$3 == "transcript" && $$9 == "genome" { print }' > $@
 
-
 ${gafDir}/transcript.genome.gaf:	${inputDir}/transcript.genome.bed ${gafDir}/gene.genome.gaf
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/transcript.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeTranscriptSet.py ${scratchDir}/transcript.genome.preGaf.GRCh37-lite.bed |sort > $@ 
-
-
 ${testOutput}/transcript.gene.diff:	${testInput}/transcript.gene.2.1.gaf ${testInput}/transcript.gene.3.0.gaf
 	cat ${testInput}/transcript.gene.2.1.gaf \
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$8, $$9, $$10, $$11, $$12, $$13, $$14, $$15, $$16, $$17, $$18 }' \
@@ -236,7 +260,7 @@ ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt: sql/geneTestSet.sql
 ${outputBedDir}/%.bb:	${gafDir}/%.gaf
 	scripts/gafToBed.py $< |sort -k1,1 -k2,2n > ${scratchDir}/$*.postGaf.GRCh37-lite.bed
 	liftOver ${scratchDir}/$*.postGaf.GRCh37-lite.bed data/GRCh37-lite/GRCh37-lite.hg19.over.chain ${scratchDir}/$*.postGaf.hg19.bed /dev/null
-	bedToBigBed ${scratchDir}/$*.postGaf.hg19.bed /hive/data/genomes/hg19/chrom.sizes $@
+	-bedToBigBed ${scratchDir}/$*.postGaf.hg19.bed /hive/data/genomes/hg19/chrom.sizes $@
 
 ${gafDir}/componentExon.genome.gaf:	${inputDir}/componentExon.genome.bed ${gafDir}/gene.genome.gaf
 	liftOver $< data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/componentExon.genome.preGaf.GRCh37-lite.bed /dev/null
@@ -263,8 +287,8 @@ ${inputDir}/componentExon.genome.bed ${inputDir}/compositeExon.genome.bed ${inpu
 # miRNA data
 #
 
-${gafDir}/miRnaSet.gaf:	${miRnaSetContents}
-	cat ${miRnaSetContents} | awk '{$$1 = NR; print}' > $@
+${gafDir}/miRnaSet.gaf:	${miRnaSetGf}
+	cat ${miRnaSetGaf} | cut -f2- |perl -pe '$$_ = "$$.\t$$_"' > $@
 
 #
 # When comparing the new pre-miRNA data to the old, don't look at the strand because
@@ -443,6 +467,9 @@ ${gafDir}/dbSNP.genome.gaf:	${inputDir}/dbSNP.genome.bed ${gafDir}/gene.genome.g
 
 #
 # MAProbe
+${gafDir}/probeSet.gaf:	${probeSetGaf}
+	cat ${probeSetGaf} | cut -f2- |perl -pe '$$_ = "$$.\t$$_"' > $@
+
 data/MAprobe.hg19.bed:	${gafDir}/MAprobe.genome.gaf
 	scripts/gafToBed.py $< > ${scratchDir}/MAprobe.postGaf.GRCh37-lite.bed
 	liftOver ${scratchDir}/MAprobe.postGaf.GRCh37-lite.bed data/GRCh37-lite/GRCh37-lite.hg19.over.chain $@ /dev/null
