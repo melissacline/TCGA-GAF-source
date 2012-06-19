@@ -82,9 +82,10 @@ for line in compositeGafFp:
         if args.debug:
             print "workng on probe", maProbeEntry
         maProbeGaf = maProbe[maProbeEntry]
-        maProbeToCompositeGaf = Gaf.FeatureToCompositeGaf()
-        maProbeToCompositeGaf.assign(maProbeGaf, compositeGaf, mergeAdjacent=True,
-                                     debug=args.debug)
+        maProbeToCompositeGaf = Gaf.Gaf()
+        maProbeToCompositeGaf.featureToComposite(maProbeGaf, compositeGaf,
+                                                 mergeAdjacent=True,
+                                                 debug=args.debug)
         if len(maProbeToCompositeGaf.featureCoordinates) > 0:
             #
             # Unlike other feature-composite mappings, this time we'll take the

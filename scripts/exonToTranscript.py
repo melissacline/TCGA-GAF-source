@@ -33,8 +33,8 @@ for line in featureFp:
     feat = Gaf.Gaf(line)
     compositesThisFeature = geneToComposite[feat.gene]
     for comp in compositesThisFeature:
-        featToComp = Gaf.FeatureToCompositeGaf()
-        featToComp.assign(feat, comp)
+        featToComp = Gaf.Gaf()
+        featToComp.featureToComposite(feat, comp)
         if len(featToComp.featureCoordinates) > 0:
             featToComp.entryNumber = entryNumber
             print featToComp

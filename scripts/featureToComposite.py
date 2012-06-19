@@ -34,8 +34,8 @@ for line in featureFp:
     if geneToComposite.has_key(feat.gene):
         compositesThisFeature = geneToComposite[feat.gene]
         for comp in compositesThisFeature:
-            featToComp = Gaf.FeatureToCompositeGaf()
-            featToComp.assign(feat, comp)
+            featToComp = Gaf.Gaf()
+            featToComp.featureToComposite(feat, comp)
             if len(featToComp.featureCoordinates) > 0:
                 featToComp.entryNumber = entryNumber
                 print featToComp

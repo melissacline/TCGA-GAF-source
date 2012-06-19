@@ -36,8 +36,8 @@ for line in miRnaFp:
     preMiRnaId = miRnaGaf.featureInfo.split("pre-miRNA=")[1]
     assert preMiRnas.has_key(preMiRnaId)
     preMiRnaGaf = preMiRnas[preMiRnaId]
-    miRnaToPreMiRna = Gaf.FeatureToCompositeGaf()
-    miRnaToPreMiRna.assign(miRnaGaf, preMiRnaGaf)
+    miRnaToPreMiRna = Gaf.Gaf()
+    miRnaToPreMiRna.featureToComposite(miRnaGaf, preMiRnaGaf)
     miRnaToPreMiRna.featureInfo = ""
     entryNumber = entryNumber + 1
     miRnaToPreMiRna.entryNumber = entryNumber

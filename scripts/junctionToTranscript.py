@@ -50,8 +50,8 @@ for line in junctionFp:
         transcriptsThisGene = geneToTranscript[junction.gene]
         for transcript in transcriptsThisGene:
             if hasCommonEndpoints(junction, transcript):
-                junctionToTranscript = Gaf.FeatureToCompositeGaf()
-                junctionToTranscript.assign(junction, transcript)
+                junctionToTranscript = Gaf.Gaf()
+                junctionToTranscript.featureToComposite(junction, transcript)
                 assert len(junctionToTranscript.featureCoordinates) > 0
                 junctionToTranscript.entryNumber = entryNumber
                 print junctionToTranscript
