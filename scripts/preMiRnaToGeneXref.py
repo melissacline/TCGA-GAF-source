@@ -39,8 +39,7 @@ hg19Fp.close
 gafFp = open(args.gaf)
 for line in gafFp:
     line = line.rstrip()
-    preMiRnaGaf = Gaf.Gaf()
-    preMiRnaGaf.setFields(line.rstrip().split("\t"))
+    preMiRnaGaf = Gaf.Gaf(line)
     (grch37LiteChrom, grch37LiteCoords,
      grch37LiteStrand) = preMiRnaGaf.compositeCoordinates.split(":")
     grch37LiteChromStart = grch37LiteCoords.split("-")[0]

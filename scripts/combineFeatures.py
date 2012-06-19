@@ -10,8 +10,7 @@ import sys
 prevGaf = Gaf.Gaf()
 prevFeatureId = ""
 for line in sys.stdin.readlines():
-    nextGaf = Gaf.Gaf()
-    nextGaf.setFields(line.rstrip().split("\t"))
+    nextGaf = Gaf.Gaf(line)
     if nextGaf.featureId != prevFeatureId:
         if len(prevGaf.featureId) > 0:
             prevGaf.write(sys.stdout)

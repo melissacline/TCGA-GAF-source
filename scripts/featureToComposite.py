@@ -5,14 +5,6 @@ import Gaf
 import sys
 
     
-def lineToGaf(line):
-    """Given a line from a gaf file, parse it into a gaf object"""
-    tokens = line.rstrip().split('\t')
-    gg = Gaf.Gaf()
-    gg.setFields(tokens)
-    return(gg)
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument('featureGaf', type=str, 
                     help="GAF containing features mapped against the genome")
@@ -29,7 +21,7 @@ entryNumber = args.entryNumber
 geneToComposite = dict()
 compositeFp = open(args.compositeGaf)
 for line in compositeFp:
-    comp = lineToGaf(line)
+    comp = Gaf.Gaf(line)
     if geneToComposite.has_key(comp.gene):
         geneToComposite[comp.gene].append(comp)
     else:
@@ -38,7 +30,7 @@ compositeFp.close()
 
 featureFp = open(args.featureGaf)
 for line in featureFp:
-    feat = lineToGaf(line)
+    feat = Gaf.Gaf(line)
     if geneToComposite.has_key(feat.gene):
         compositesThisFeature = geneToComposite[feat.gene]
         for comp in compositesThisFeature:

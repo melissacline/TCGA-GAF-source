@@ -94,8 +94,7 @@ for row in fp:
     row = row.rstrip()
     if args.debug:
         print "Input Row", row
-    gafData = Gaf.Gaf()
-    gafData.setFields(row.split('\t'))
+    gafData = Gaf.Gaf(row)
     bedLine = gafLineToBedLine(gafData)
     if bedLine != "":
         print bedLine

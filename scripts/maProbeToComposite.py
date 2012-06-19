@@ -53,8 +53,7 @@ entryNumber = args.entryNumber
 maProbe = dict()
 maProbeGafFp = open(args.maProbeGaf)
 for line in maProbeGafFp:
-    maProbeGaf = Gaf.Gaf()
-    maProbeGaf.setFields(line.rstrip().split("\t"))
+    maProbeGaf = Gaf.Gaf(line)
     (maChrom, maCoordinateString, maStrand) = maProbeGaf.compositeCoordinates.split(":")
     maChromStart = maCoordinateString.split("-")[0]
     maChromEnd = maCoordinateString.split("-")[-1]
@@ -71,8 +70,7 @@ maProbeGafFp.close()
 # and output the mapping.
 compositeGafFp = open(args.compositeGaf)
 for line in compositeGafFp:
-    compositeGaf = Gaf.Gaf()
-    compositeGaf.setFields(line.rstrip().split("\t"))
+    compositeGaf = Gaf.Gaf(line)
     if args.debug:
         print "working on", compositeGaf
     (cgChrom, cgCoordinateString, cgStrand) = compositeGaf.compositeCoordinates.split(":")

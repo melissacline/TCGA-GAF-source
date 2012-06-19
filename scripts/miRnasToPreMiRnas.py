@@ -21,9 +21,7 @@ entryNumber = args.entryNumber
 preMiRnas = dict()
 preMiRnaGafFp = open(args.preMiRnaGaf)
 for line in preMiRnaGafFp:
-    preMiRnaGaf = Gaf.Gaf()
-    preMiRnaGaf.setFields(line.rstrip().split("\t"))
-#    geneId = preMiRnaGaf.featureId.split("|")[0]
+    preMiRnaGaf = Gaf.Gaf(line)
     preMiRnas[preMiRnaGaf.featureId] = preMiRnaGaf
 preMiRnaGafFp.close()
 
@@ -34,8 +32,7 @@ preMiRnaGafFp.close()
 # a mapping.
 miRnaFp = open(args.miRnaGaf)
 for line in miRnaFp:
-    miRnaGaf = Gaf.Gaf()
-    miRnaGaf.setFields(line.rstrip().split("\t"))
+    miRnaGaf = Gaf.Gaf(line)
     preMiRnaId = miRnaGaf.featureInfo.split("pre-miRNA=")[1]
     assert preMiRnas.has_key(preMiRnaId)
     preMiRnaGaf = preMiRnas[preMiRnaId]

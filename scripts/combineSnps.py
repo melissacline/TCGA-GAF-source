@@ -32,8 +32,7 @@ args = parser.parse_args()
 prevGaf = Gaf.Gaf()
 prevSnpId = ""
 for line in sys.stdin.readlines():
-    nextGaf = Gaf.Gaf()
-    nextGaf.setFields(line.rstrip().split("\t"))
+    nextGaf = Gaf.Gaf(line.rstrip())
     if nextGaf.featureId != prevSnpId:
         if len(prevGaf.featureId) > 0:
             prevGaf.write(sys.stdout)

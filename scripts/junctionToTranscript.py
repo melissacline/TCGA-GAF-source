@@ -5,13 +5,6 @@ import Gaf
 import sys
 
     
-def lineToGaf(line):
-    """Given a line from a gaf file, parse it into a gaf object"""
-    tokens = line.rstrip().split('\t')
-    gg = Gaf.Gaf()
-    gg.setFields(tokens)
-    return(gg)
-
 def hasCommonEndpoints(junction, transcript):
     """Verify that the endpoints of the junction are endpoints of blocks
     in the transcript"""
@@ -43,7 +36,7 @@ entryNumber = args.entryNumber
 geneToTranscript = dict()
 transcriptFp = open(args.transcriptGaf)
 for line in transcriptFp:
-    transcript = lineToGaf(line)
+    transcript = Gaf.Gaf(line)
     if geneToTranscript.has_key(transcript.gene):
         geneToTranscript[transcript.gene].append(transcript)
     else:
@@ -52,7 +45,7 @@ transcriptFp.close()
 
 junctionFp = open(args.junctionGaf)
 for line in junctionFp:
-    junction = lineToGaf(line)
+    junction = Gaf.Gaf(line)
     if geneToTranscript.has_key(junction.gene):
         transcriptsThisGene = geneToTranscript[junction.gene]
         for transcript in transcriptsThisGene:

@@ -30,8 +30,7 @@ prevRnaId = ""
 prevAccession = ""
 fp = open(args.inputGaf)
 for line in fp:
-    nextGaf = Gaf.Gaf()
-    nextGaf.setFields(line.rstrip().split("\t"))
+    nextGaf = Gaf.Gaf(line)
     (nextRnaId,nextAccession) = nextGaf.featureId.split("|")
     nextRnaIdTokens = nextRnaId.split("-")
     if len(nextRnaIdTokens) == 4:

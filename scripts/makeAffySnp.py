@@ -27,20 +27,22 @@ entryNumber = args.entryNumber
 oldAffySnp = dict()
 oldAffySnpGafFp = open(args.oldAffySnpGaf)
 for line in oldAffySnpGafFp:
-    oldAffySnpGaf = Gaf.Gaf()
-    oldAffySnpGaf.setFields(line.rstrip().split("\t"))
+    oldAffySnpGaf = Gaf.Gaf(line)
     oldAffySnp[oldAffySnpGaf.featureId] = oldAffySnpGaf
 oldAffySnpGafFp.close()
 
 fp = open(args.affySnpBed)
 for line in fp:
+
     #
     # Get the basic fields from the BED data
     bb = Bed.Bed(line.split())
     gg = Gaf.GafAffySnp(bb, entryNumber)
+
     #
     # From the old GAF data, get the featureInfo string
     gg.featureInfo = oldAffySnp[gg.featureId].featureInfo
+
     #
     # Look up the gene and gene locus for these coordinates
     gg.gene = ""
