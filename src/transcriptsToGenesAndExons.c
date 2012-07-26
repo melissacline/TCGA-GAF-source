@@ -85,15 +85,17 @@ char *geneNameThisCluster(struct sqlConnection *conn, int clusterId)
 	    sqlFreeResult(&entrezIdResult);
 	} else {
 	    /* Whatever is in geneSymbol is not a symbol in the hgnc table.  See
-	     * if it hits anything in the synonym column */
+	     * if it hits anything in the synonym or previous symbol column */
 	    sqlFreeResult(&entrezIdResult);
 	    symbolCountQuery = dyStringNew(256);
-	    dyStringPrintf(symbolCountQuery, "hgnc where synonyms = '%s' or synonyms like '%s,%%' or synonyms like '%% %s,%%' or synonyms like '%%, %s'", geneSymbol,
-			   geneSymbol, geneSymbol, geneSymbol);
+	    dyStringPrintf(symbolCountQuery, 
+			   "hgnc where synonyms rlike '(%%,)*%s(,%%)*' or prvSymbols rlike '(%%,)*%s(,%%)*'", 
+			   geneSymbol, geneSymbol);
 	    if (sqlRowCount(conn, symbolCountQuery->string) == 1) {
 		symbolLookupQuery = dyStringNew(256);
-		dyStringPrintf(symbolLookupQuery, "select symbol, entrezId from hgnc where synonyms = '%s' or synonyms like '%s,%%' or synonyms like '%% %s,%%' or synonyms like '%%, %s'", 
-			       geneSymbol, geneSymbol, geneSymbol, geneSymbol);
+		dyStringPrintf(symbolLookupQuery, 
+			       "select symbol, entrezId from hgnc where synonyms rlike '(%%,)*%s(,%%)*' or prvSymbols rlike '(%%,)*%s(,%%)*'", 
+			       geneSymbol, geneSymbol);
 		symbolLookupResult = sqlGetResult(conn, symbolLookupQuery->string);
 		row = sqlNextRow(symbolLookupResult);
 		assert(row != NULL);
@@ -103,7 +105,7 @@ char *geneNameThisCluster(struct sqlConnection *conn, int clusterId)
 		entrezGeneId = cloneString(row[1]);
 		dyStringFree(&symbolLookupQuery);
 		sqlFreeResult(&symbolLookupResult);
-	    }
+	    } 
 	    dyStringFree(&symbolCountQuery);
 	}
     }
@@ -114,6 +116,43 @@ char *geneNameThisCluster(struct sqlConnection *conn, int clusterId)
     freeMem(entrezGeneId);
     return(geneName);
 }
+
+
+char *geneNameThisClusterViaEnsembl(struct sqlConnection *conn, 
+				    char *knownIsoformTable, 
+				    int clusterId)
+{
+    struct dyString *symbolBuf = dyStringNew(80);
+    struct dyString *geneSymbolQuery;
+    struct sqlResult *geneSymbolResult;
+    char *geneSymbol, *entrezGeneId, *geneName, **row;
+
+    /* Given the cluster ID, look up the transcripts from the knownIsoforms table.
+     * Join the transcript IDs with those in the knownToEnsembl table, producing
+     * a list of ENSEMBL transcripts.  Use those to get the ENSEMBL gene accession
+     * from the ensGene table.  Use the gene accession to query into the hgnc table
+     * to produce a symbol and an Entrez ID.  
+     * Taking this route, there can be multiple mappings between cluster ID and 
+     * symbol|entrezID.  Because of this, select only the one most frequent mapping.*/
+    geneSymbolQuery = dyStringNew(256);
+    dyStringPrintf(geneSymbolQuery, "select h.symbol, h.entrezId, count(*) as matches from %s ki, knownToEnsembl ke, ensGene eg, hgnc h where ki.transcript = ke.name and ke.value = eg.name and eg.name2 = h.ensId and ki.clusterId = %d group by h.symbol, h.entrezId order by matches limit 1", knownIsoformTable, clusterId);
+    geneSymbolResult = sqlGetResult(conn, geneSymbolQuery->string);
+    if ((row = sqlNextRow(geneSymbolResult)) != NULL) {
+	if (strcmp(row[0], "") != 0) {
+	    geneSymbol = cloneString(row[0]);
+	    entrezGeneId = cloneString(row[1]);
+	    symbolBuf = dyStringCreate("%s|%s", geneSymbol, entrezGeneId);
+	    geneName = dyStringCannibalize(&symbolBuf);
+	    dyStringFree(&geneSymbolQuery);
+	    sqlFreeResult(&geneSymbolResult);
+	    return(geneName);
+	} 
+    }
+    dyStringFree(&geneSymbolQuery);
+    sqlFreeResult(&geneSymbolResult);
+    return("");
+}
+
 
 
 int scoreThisTranscript(struct sqlConnection *conn, char *transcriptName, char *geneName)
@@ -379,7 +418,7 @@ void oneChromStrand(struct sqlConnection *conn1, struct sqlConnection *conn2,
     struct genePred *gp;
     struct dyString *query = dyStringNew(256);
     int geneClusterId, prevGeneClusterId;
-    char *geneName, *transcriptName;
+    char *geneName, *alternativeGeneName, *transcriptName;
     struct rbTree *componentExons = NULL;
     struct rbTree *compositeExons = NULL;
     int maxGeneScore;
@@ -409,6 +448,15 @@ void oneChromStrand(struct sqlConnection *conn1, struct sqlConnection *conn2,
 	    }
 	    prevGeneClusterId = geneClusterId;
 	    geneName = geneNameThisCluster(conn2, geneClusterId);
+	    if (endsWith(geneName, "?")) {
+		alternativeGeneName = geneNameThisClusterViaEnsembl(conn2, 
+								    transcriptClusters,
+								    geneClusterId);
+		if (strlen(alternativeGeneName) > 1) {
+		    freeMem(geneName);
+		    geneName = alternativeGeneName;
+		}
+	    }
 	    maxGeneScore = 0;
 	    componentExons = rangeTreeNew();
 	    compositeExons = rangeTreeNew();

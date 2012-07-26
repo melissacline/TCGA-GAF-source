@@ -1,4 +1,5 @@
 
+
 gaf21File = /hive/users/cline/TCGA/GAF2.1/TCGA.hg19.June2011.with_dbSNP.gaf.gz
 inputDir = data/hg19-init
 scratchDir = data/scratch
@@ -51,7 +52,7 @@ probeSetDiff = ${testOutput}/MAprobe.genome.diff ${testOutput}/MAprobe.transcrip
 	${testOutput}/MAprobe.pre-miRNA.diff ${testOutput}/MAprobe.miRNA.diff \
 	${testOutput}/AffySNP.genome.diff
 
-probeSetBB = ${outputBedDir}/MAprobe.genome.bb 
+probeSetBB = ${outputBedDir}/MAprobe.genome.bb ${outputBedDir}/AffySNP.genome.bb
 
 probeSet = ${probeSetGaf} ${probeSetDiff} ${probeSetBB}
 
