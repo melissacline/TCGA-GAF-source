@@ -2,7 +2,7 @@
 
 import argparse
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import sys
@@ -28,7 +28,7 @@ for line in fp:
     tokens = bb.name.split(";")
     clusterId = tokens.pop()
     bb.name = ";".join(tokens)
-    gg = Gaf.GafExon(bb, entryNumber, args.exonType)
+    gg = Grch37LiteGaf.GafExon(bb, entryNumber, args.exonType)
     geneXrefQuery = """SELECT geneName, grch37LiteLocus
                          FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)

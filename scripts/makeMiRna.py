@@ -31,7 +31,7 @@ Options
 import argparse
 import Bio.SeqIO
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 from BCBio import GFF
 import MySQLdb
 import MySQLdb.cursors
@@ -88,7 +88,7 @@ for chrom in gffIter:
 miRnaBedFp = open(args.miRnaBed)
 for line in miRnaBedFp:
     bb = Bed.Bed(line.rstrip().split())
-    gg = Gaf.GafMiRna(bb)
+    gg = Grch37LiteGaf.GafMiRna(bb)
     gg.featureId = idToLabel[gg.featureId]
     preMiRnaId = miRnaToPreMiRna[bb.name]
     preMiRnaName = idToLabel[preMiRnaId]

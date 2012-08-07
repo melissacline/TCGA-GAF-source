@@ -31,7 +31,7 @@ of GAF records don't follow this convention.
 
 import argparse
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import sys
@@ -55,7 +55,7 @@ fp = open(args.grch37LiteBed)
 for line in fp:
     line = line.rstrip()
     grch37LiteBed = Bed.Bed(line.split())
-    gg = Gaf.GafMaProbe(grch37LiteBed, entryNumber)
+    gg = Grch37LiteGaf.GafMaProbe(grch37LiteBed, entryNumber)
 
     #
     # Look up any overlapping genes.  If multiple overlapping genes are found,

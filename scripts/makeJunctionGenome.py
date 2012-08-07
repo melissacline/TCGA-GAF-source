@@ -2,7 +2,7 @@
 
 import argparse
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import sys
@@ -34,7 +34,7 @@ for line in fp:
         gene = row["geneName"]
         geneLocus = row["grch37LiteLocus"]
         for ii in range(len(bb.blocks)-1):
-            gg = Gaf.GafJunction(bb, entryNumber, ii)
+            gg = Grch37LiteGaf.GafJunction(bb, entryNumber, ii)
             gg.gene = gene
             gg.geneLocus = geneLocus
             gg.write(sys.stdout)

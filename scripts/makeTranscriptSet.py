@@ -2,7 +2,7 @@
 
 import argparse
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import sys
@@ -26,7 +26,7 @@ for line in fp:
     tokens = bb.name.split(";")
     clusterId = tokens.pop()
     bb.name = ";".join(tokens)
-    gg = Gaf.GafTranscript(bb, entryNumber)
+    gg = Grch37LiteGaf.GafTranscript(bb, entryNumber)
     kgXrefQuery = "SELECT value FROM knownToRefSeq WHERE name = '%s'" \
                   % (bb.name)
     cursor.execute(kgXrefQuery)

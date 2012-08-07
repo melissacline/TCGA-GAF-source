@@ -262,15 +262,20 @@ char *geneNameThisCluster(struct sqlConnection *conn, int clusterId,
     }
     /* Plan D: try to find the symbol using the knownToEnsembl table 
      * and the ensId field in hgnc */
-    if (!hasHugoSymbol) {
-	newGeneSymbol = clusterIdToGeneSymbolViaEnsembl(conn, knownIsoformTable,
-							clusterId);
-	if (newGeneSymbol != NULL) {
-	    freeMem(geneSymbol);
-	    geneSymbol = newGeneSymbol;
-	    hasHugoSymbol = TRUE;
-	}
-    }
+    /* 8/6/12: I'm commenting this out because it seems to introduce too
+     * many false positives */
+/*
+ *    if (!hasHugoSymbol) {
+ *     newGeneSymbol = clusterIdToGeneSymbolViaEnsembl(conn, 
+ *							knownIsoformTable,
+ *							clusterId);
+ *	if (newGeneSymbol != NULL) {
+ *	    freeMem(geneSymbol);
+ *	    geneSymbol = newGeneSymbol;
+ *	    hasHugoSymbol = TRUE;
+ *	}
+ *   }
+ */
 
     /* Now that we've tried the many ways to possibly get a gene symbol,
      * work on the Entrez ID. Plan A: Via the HUGO table.  

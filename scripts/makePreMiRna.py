@@ -3,7 +3,7 @@
 import argparse
 import Bio.SeqIO
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -85,7 +85,7 @@ miRnaDatHandle.close()
 preMiRnaBedFp = open(args.preMiRnaBed)
 for line in preMiRnaBedFp:
     bb = Bed.Bed(line.rstrip().split())
-    gg = Gaf.GafPreMiRna(bb)
+    gg = Grch37LiteGaf.GafPreMiRna(bb)
     assert miRnaDat.has_key(bb.name)
     mm = miRnaDat[bb.name]
     gg.featureId = "%s|%s" % (mm.name, mm.id)

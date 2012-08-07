@@ -2,7 +2,7 @@
 
 import argparse
 from pycbio.hgdata import Bed
-import Gaf
+import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors
 import sys
@@ -37,7 +37,7 @@ for line in fp:
     #
     # Get the basic fields from the BED data
     bb = Bed.Bed(line.split())
-    gg = Gaf.GafAffySnp(bb, entryNumber)
+    gg = Grch37LiteGaf.GafAffySnp(bb, entryNumber)
 
     #
     # From the old GAF data, get the featureInfo string
