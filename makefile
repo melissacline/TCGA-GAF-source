@@ -673,14 +673,14 @@ ${testInput}/AffySNP.genome.2.1.gaf:     ${testDir}/testAffySNP.txt ${scratchDir
 	| awk '{ print "grep -w \"" $$1  "\" ${scratchDir}/AffySNP.genome.gaf21.gaf"}'  \
 	| bash > $@       
 
-${scratchDir}/AffySNP.genome.gaf21.gaf: 
-	zcat ${gaf21File} \
-	| awk -F'\t' '$$3 == "AffySNP" && $$9 == "genome" { print }' > $@
-
-${gafDir}/AffySNP.genome.gaf: ${inputDir}/AffySNP.genome.bed
+${gafDir}/AffySNP.genome.gaf: ${inputDir}/AffySNP.genome.bed ${scratchDir}/AffySNP.genome.gaf21.gaf
 	liftOver $< data/GRCh37-lite/GRCh37-lite.hg19.over.chain \
 	${scratchDir}/AffySNP.genome.preGaf.GRCh37-lite.bed /dev/null
 	scripts/makeAffySnp.py ${scratchDir}/AffySNP.genome.preGaf.GRCh37-lite.bed \
 	${scratchDir}/AffySNP.genome.gaf21.gaf > $@
 
+
+${scratchDir}/AffySNP.genome.gaf21.gaf: 
+	zcat ${gaf21File} \
+	| awk -F'\t' '$$3 == "AffySNP" && $$9 == "genome" { print }' > $@
 
