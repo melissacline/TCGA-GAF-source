@@ -44,6 +44,8 @@ def preMiRnaGeneLookup(preMiRnaAlias, cursor):
     query ="""SELECT geneName, grch37LiteLocus FROM gafGeneXref
                WHERE alias = '%s'""" % (preMiRnaAlias)
     cursor.execute(query)
+    if cursor.rowcount != 1:
+        print "rowcount", cursor.rowcount, "problem query", query
     assert(cursor.rowcount == 1)
     row = cursor.fetchone()
     return(row['geneName'], row['grch37LiteLocus'])

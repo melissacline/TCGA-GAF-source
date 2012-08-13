@@ -2,6 +2,7 @@
 
 import argparse
 from pycbio.hgdata import Bed
+import Gaf
 import Grch37LiteGaf
 import MySQLdb
 import MySQLdb.cursors

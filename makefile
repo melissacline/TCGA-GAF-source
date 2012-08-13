@@ -369,9 +369,10 @@ ${scratchDir}/miRNA.genome.gaf21.gaf:
 	| awk -F'\t' '$$3 == "miRNA" && $$9 == "genome" { print }' > $@
 
 
-${gafDir}/miRNA.genome.gaf:	${inputDir}/miRNA.genome.bed 
-	scripts/makeMiRna.py $< data/hsa.gff3 |sed 's/|/ /' |sort -k3,13\
-        |sed 's/ /|/' > ${scratchDir}/miRNA.genome.uncombined.gaf
+${gafDir}/miRNA.genome.gaf:	${inputDir}/miRNA.genome.bed data/hsa.gff3
+	liftOver ${inputDir}/miRNA.genome.bed data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/miRNA.genome.preGaf.GRCh37-lite.bed /dev/null
+	scripts/makeMiRna.py ${scratchDir}/miRNA.genome.preGaf.GRCh37-lite.bed data/hsa.gff3 |sed 's/|/ /' \
+        |sort -k3,13 |sed 's/ /|/' > ${scratchDir}/miRNA.genome.uncombined.gaf
 	scripts/combineMiRnas.py ${scratchDir}/miRNA.genome.uncombined.gaf > $@
 
 ${inputDir}/miRNA.genome.bed:	data/hsa.gff3
@@ -632,7 +633,7 @@ ${testInput}/MAprobe.transcript.3.0.gaf: ${testDir}/MAprobe.transcript.test.txt 
 	| awk '{ print "grep \"" $$1 ".*" $$2 "\" ${gafDir}/MAprobe.transcript.gaf"}'  \
 	| bash > $@       
 
-${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/MAprobe.transcript.test.txt ${scratchDir}/MAprobe.genome.gaf21.gaf                                
+${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/MAprobe.transcript.test.txt ${scratchDir}/MAprobe.transcript.gaf21.gaf                                
 	-cat ${testDir}/MAprobe.transcript.test.txt \
 	| awk '{ print "grep \"" $$1 ".*" $$2 "\" ${scratchDir}/MAprobe.transcript.gaf21.gaf"}'  \
 	| bash > $@       
