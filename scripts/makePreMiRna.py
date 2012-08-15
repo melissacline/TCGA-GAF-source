@@ -69,26 +69,33 @@ entryNumber = args.entryNumber
 #
 # First, read the annotation data from miRNA.dat.  For each human
 # record (signified by the name beginning with "hsa"), save the
-# data in a dictonary indexed by accession 
+# data in a dictonary indexed by accession and 'id'.  Note that this
+# ID isn't the same as in hsa.gff3 (the source of the coordinate data),
+# see below...
 miRnaDat = dict()
 miRnaDatHandle = open(args.miRnaDat, "rU")
 for record in Bio.SeqIO.parse(miRnaDatHandle, "embl"):
     if re.search("^hsa", record.name):
-        miRnaDat[record.id] = record
+        thisKey = "%s|%s" % (record.name, record.id)
+        miRnaDat[thisKey] = record
 miRnaDatHandle.close()
 
 
 #
 # Next, read the bed file containing the GRCh37-lite coordinates.
 # Convert each line to GAF format and add annotation data from
-# miRna.dat
+# miRna.dat.  When reading data from miRNA.dat, beware that the
+# thing they call ID is different than the ID in the rest of the
+# system: MI0022552 rather than MI0022552_1.  For this reason,
+# split the ID at the underscore and use the first piece to read
+# the miRNA.dat hash.
 preMiRnaBedFp = open(args.preMiRnaBed)
 for line in preMiRnaBedFp:
     bb = Bed.Bed(line.rstrip().split())
+    keyThisLine = bb.name.split("_")[0]
+    assert miRnaDat.has_key(keyThisLine)
+    mm = miRnaDat[keyThisLine]
     gg = Grch37LiteGaf.GafPreMiRna(bb)
-    assert miRnaDat.has_key(bb.name)
-    mm = miRnaDat[bb.name]
-    gg.featureId = "%s|%s" % (mm.name, mm.id)
     gg.gene = getGeneName(mm.dbxrefs, id, cursor)
     gg.geneLocus = gg.compositeCoordsToLocus()
     entryNumber = entryNumber + 1

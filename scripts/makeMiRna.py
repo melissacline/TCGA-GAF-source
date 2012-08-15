@@ -76,7 +76,7 @@ for chrom in gffIter:
     for hit in chrom.features:
         id = hit.id
         label = "%s|%s" % (hit.qualifiers["Name"][0],
-                           hit.qualifiers["accession_number"][0])
+                           hit.qualifiers["ID"][0])
         idToLabel[id] = label
         if hit.type == "miRNA":
             miRnaToPreMiRna[hit.id] = hit.qualifiers["derives_from"][0]

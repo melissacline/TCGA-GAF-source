@@ -17,16 +17,7 @@ for line in sys.stdin.readlines():
         prevGaf = nextGaf
         prevFeatureId = nextGaf.featureId
     else:
-        prevGaf.featureCoordinates = "%s;%s" % (prevGaf.featureCoordinates, 
-                                                nextGaf.featureCoordinates)
-        prevGaf.compositeCoordinates = "%s;%s" % (prevGaf.compositeCoordinates,
-                                                  nextGaf.compositeCoordinates)
-        if not re.search(re.sub("\?", "\?", nextGaf.gene), prevGaf.gene):
-            prevGaf.gene = "%s;%s" % (prevGaf.gene, nextGaf.gene)
-        if not re.search(re.sub("\+", "\+", nextGaf.geneLocus), prevGaf.geneLocus):
-            prevGaf.geneLocus = "%s;%s" % (prevGaf.geneLocus, nextGaf.geneLocus)
-        if not re.search(nextGaf.featureInfo, prevGaf.featureInfo):
-            prevGaf.featureInfo = "%s;%s" % (prevGaf.featureInfo, nextGaf.featureInfo)
+        prevGaf.combine(nextGaf)
 if nextGaf.featureId == prevGaf.featureId:
     prevGaf.write(sys.stdout)
 

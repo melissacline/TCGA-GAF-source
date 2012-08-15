@@ -19,7 +19,8 @@ geneSetGaf = ${gafDir}/gene.genome.gaf ${gafDir}/transcript.genome.gaf \
 	${gafDir}/compositeExon.transcript.gaf \
         ${gafDir}/componentExon.genome.gaf ${gafDir}/componentExon.gene.gaf \
 	${gafDir}/componentExon.transcript.gaf \
-	${gafDir}/junction.genome.gaf ${gafDir}/junction.transcript.gaf 
+	${gafDir}/junction.genome.gaf ${gafDir}/junction.gene.gaf \
+        ${gafDir}/junction.transcript.gaf 
 
 geneSetDiff = ${testOutput}/gene.genome.diff ${testOutput}/transcript.genome.diff \
 	${testOutput}/compositeExon.transcript.diff ${testOutput}/componentExon.transcript.diff \
@@ -253,6 +254,9 @@ ${scratchDir}/junction.transcript.2.1.gaf:
 ${gafDir}/junction.transcript.gaf: ${gafDir}/junction.genome.gaf ${gafDir}/transcript.genome.gaf
 	scripts/junctionToTranscript.py ${gafDir}/junction.genome.gaf ${gafDir}/transcript.genome.gaf > $@
 
+${gafDir}/junction.gene.gaf: ${gafDir}/junction.genome.gaf ${gafDir}/gene.genome.gaf
+	scripts/featureToComposite.py ${gafDir}/junction.genome.gaf ${gafDir}/gene.genome.gaf > $@
+
 
 ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt: sql/geneTestSet.sql
 	rm ${testDir}/testGenes.txt ${testDir}/testTranscripts.txt
@@ -293,7 +297,9 @@ ${gafDir}/miRnaSet.gaf:	${miRnaSetGf}
 
 #
 # When comparing the new pre-miRNA data to the old, don't look at the strand because
-# miRBase has changed the strands for many miRNAs.  Also don't look at the gene name
+# miRBase has changed the strands for many miRNAs. The previous GAF used the
+# accession (MI0022552) while the current GAF uses the ID
+# (MI0022552_1), so adapt accordingly.  Also don't look at the gene name
 # or gene locus field, because no gene assignment was made in a lot of the old
 # miRBase records.
 ${testOutput}/pre-miRNA.genome.diff:	${testInput}/pre-miRNA.genome.2.1.gaf ${testInput}/pre-miRNA.genome.3.0.gaf 
@@ -301,7 +307,7 @@ ${testOutput}/pre-miRNA.genome.diff:	${testInput}/pre-miRNA.genome.2.1.gaf ${tes
 	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15}' \
 	| sed 's/:+//' |sed 's/:-//' > ${scratchDir}/pre-miRNA.genome.2.1.subset
 	cat ${testInput}/pre-miRNA.genome.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15}' \
+	| awk -F'\t' '{ split($$2, tokens, "_"); print tokens[1], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15}' \
 	| sed 's/:+//' |sed 's/:-//' > ${scratchDir}/pre-miRNA.genome.3.0.subset
 	diff ${scratchDir}/pre-miRNA.genome.2.1.subset ${scratchDir}/pre-miRNA.genome.3.0.subset > $@
 
@@ -321,11 +327,14 @@ ${scratchDir}/pre-miRNA.genome.gaf21.gaf:
 # After making the pre-miRNA GAF data, add the genes to the 
 ${gafDir}/pre-miRNA.genome.gaf:	${inputDir}/pre-miRNA.genome.bed
 	liftOver ${inputDir}/pre-miRNA.genome.bed data/GRCh37-lite/hg19.GRCh37-lite.over.chain ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed /dev/null
-	scripts/makePreMiRna.py ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed data/miRNA.dat > $@
-	scripts/preMiRnaToGeneXref.py $< $@ 
+	scripts/makePreMiRna.py ${scratchDir}/pre-miRNA.genome.preGaf.GRCh37-lite.bed data/miRNA.dat |sort -k2,2 > ${scratchDir}/pre-miRNA.genome.uncombined.gaf
+	scripts/combineFeatures.py < ${scratchDir}/pre-miRNA.genome.uncombined.gaf > $@
+	scripts/preMiRnaToGeneXref.py $< $@
+
 
 ${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
-	scripts/gffToBed.py -t miRNA_primary_transcript -n accession_number $< > $@
+	scripts/gffToBed.py -t miRNA_primary_transcript -n Name,ID $< \
+	| sed 's/,/|/g' > $@
 
 #
 # The list of test pre-miRNAs is created as follows:
@@ -339,19 +348,22 @@ ${inputDir}/pre-miRNA.genome.bed:	data/hsa.gff3
 # join preMiRna.old.txt preMiRna.new.txt |head -250 > testPreMiRna.txt
 
 
-#
-# When looking at the miRNA.genome records, don't look at the miRBase ID 
-# (the part that begins 'hsa'), or the strand, because those have been changed
-# by miRBase in many cases.  Also don't look at cases where multiple miRNAs
-# have been combined into a single entry, because there is nothing to ensure
-# that the order of the entries is unchanged since the last GAF build.
+# When looking at the miRNA.genome records, don't look at the miRBase
+# ID (the part that begins 'hsa'), or the strand, because those have
+# been changed by miRBase in many cases.  In the second half of the
+# ID, beware that the old version used the miRBase accession
+# (MIMAT0000062) while the new version uses the miRBase ID
+# (MIMAT0000062_2).  Adapt accordingly.  Also don't look at cases
+# where multiple miRNAs have been combined into a single entry,
+# because there is nothing to ensure that the order of the entries is
+# unchanged since the last GAF build.
 ${testOutput}/miRNA.genome.diff:	${testInput}/miRNA.genome.2.1.gaf ${testInput}/miRNA.genome.3.0.gaf 
 	cat ${testInput}/miRNA.genome.2.1.gaf \
 	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
 	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort \
         > ${scratchDir}/miRNA.genome.2.1.subset
 	cat ${testInput}/miRNA.genome.3.0.gaf \
-	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
+	| awk -F'\t' '{ split($$2, tokens, "|"); split(tokens[2], subtokens, "_"); print subtokens[1], $$3, $$4, $$9, $$10, $$12, $$13, $$14, $$15, $$16, $$17}' \
 	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort \
         > ${scratchDir}/miRNA.genome.3.0.subset
 	diff ${scratchDir}/miRNA.genome.2.1.subset ${scratchDir}/miRNA.genome.3.0.subset > $@
@@ -387,13 +399,16 @@ ${inputDir}/miRNA.genome.bed:	data/hsa.gff3
 #   stayed the same, this miRNA is now at the 3' end of the pre-miRNA.
 # - the miRBase name, the part that begins 'hsa'.  These are recognizable from
 #   miRBase 15, but many have a new suffix (*-1, *-2) to distinguish paralogs
+# - the old GAF file used miRNA accessions (MIMAT0000263, MI0000282) as part of
+#   the name.  The new one uses miRNA IDs (MIMAT0000263_1, MI0000282_1).  
+#   Adapt accordingly.
 ${testOutput}/miRNA.pre-miRNA.diff:	${testInput}/miRNA.pre-miRNA.2.1.gaf ${testInput}/miRNA.pre-miRNA.3.0.gaf 
 	cat ${testInput}/miRNA.pre-miRNA.2.1.gaf \
 	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$8, $$9, $$10, $$13, $$14, $$16, $$17 }' \
 	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort -k1,1 -k8,8 \
 	> ${scratchDir}/miRNA.pre-miRNA.2.1.subset
 	cat ${testInput}/miRNA.pre-miRNA.3.0.gaf \
-	| awk -F'\t' '{ split($$2, tokens, "|"); print tokens[2], $$3, $$4, $$8, $$9, $$10, $$13, $$14, $$16, $$17}' \
+	| awk -F'\t' '{ split($$2, tokens, "|"); split(tokens[2], subtokens, "_"); split($$8, preMiRnaTokens, "_"); print subtokens[1], $$3, $$4, preMiRnaTokens[1], $$9, $$10, $$13, $$14, $$16, $$17}' \
 	|sed 's/:-//g' |sed s'/:+//g' |grep -v ";" |sort -k1,1 -k8,8 \
 	> ${scratchDir}/miRNA.pre-miRNA.3.0.subset
 	diff ${scratchDir}/miRNA.pre-miRNA.2.1.subset ${scratchDir}/miRNA.pre-miRNA.3.0.subset > $@
@@ -534,7 +549,7 @@ ${testOutput}/MAprobe.pre-miRNA.diff:	${testInput}/MAprobe.pre-miRNA.2.1.gaf ${t
 	|sort |sed 's/:-//g' |sed 's/:+//g' \
 	> ${scratchDir}/MAprobe.pre-miRNA.2.1.subset
 	cat ${testInput}/MAprobe.pre-miRNA.3.0.gaf \
-	| awk -F'\t' '{ print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$13, $$14 }' \
+	| awk -F'\t' '{ split($$8, tokens, "_"); print $$2, $$3, $$4, $$5, $$6, $$7, tokens[1], $$9, $$10, $$13, $$14 }' \
 	|sort |sed 's/:-//g' |sed 's/:+//g' \
 	> ${scratchDir}/MAprobe.pre-miRNA.3.0.subset
 	diff ${scratchDir}/MAprobe.pre-miRNA.2.1.subset ${scratchDir}/MAprobe.pre-miRNA.3.0.subset > $@
@@ -553,7 +568,7 @@ ${testInput}/MAprobe.pre-miRNA.2.1.gaf:     ${testInput}/MAprobe.pre-miRNA.3.0.g
 	| awk '{ print "grep", $$2, "${scratchDir}/MAprobe.pre-miRNA.gaf21.gaf"}' \
 	| bash > ${scratchDir}/MAprobe.pre-miRNA.2.1.superset.gaf
 	- cat ${testInput}/MAprobe.pre-miRNA.3.0.gaf \
-	| awk -F'\t' '{ print "grep \"" $$8 "\" ${scratchDir}/MAprobe.pre-miRNA.2.1.superset.gaf"}' \
+	| awk -F'\t' '{ split($$8, tokens, "_"); print "grep \"" tokens[1] "\" ${scratchDir}/MAprobe.pre-miRNA.2.1.superset.gaf"}' \
 	| bash |sort |uniq > $@	
 
 
@@ -588,7 +603,7 @@ ${testOutput}/MAprobe.miRNA.diff:	${testInput}/MAprobe.miRNA.2.1.gaf ${testInput
 	| awk -F'\t' '{ split($$8, tokens, "|"); $$8 = tokens[2];  print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10, $$13, $$14, $$16 }' \
 	|sort |uniq > ${scratchDir}/MAprobe.miRNA.2.1.subset
 	cat ${testInput}/MAprobe.miRNA.3.0.gaf \
-	| awk -F'\t' '{ split($$8, tokens, "|"); $$8 = tokens[2]; print $$2, $$3, $$4, $$5, $$6, $$7, $$8, $$9, $$10,  $$13, $$14, $$16 }' \
+	| awk -F'\t' '{ split($$8, tokens, "|"); split(tokens[2], subtokens, "_"); print $$2, $$3, $$4, $$5, $$6, $$7, subtokens[1], $$9, $$10,  $$13, $$14, $$16 }' \
 	|sort |uniq > ${scratchDir}/MAprobe.miRNA.3.0.subset
 	diff -i ${scratchDir}/MAprobe.miRNA.2.1.subset ${scratchDir}/MAprobe.miRNA.3.0.subset > $@
 

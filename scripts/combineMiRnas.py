@@ -16,7 +16,7 @@ The input data should be sorted by miRNA feature ID
 """
 
 import argparse
-import Gaf
+import Grch37LiteGaf
 import re
 import sys
 
@@ -25,37 +25,23 @@ parser.add_argument('inputGaf', type=str,
                     help="Input GAF file: if any feature has two alignments, combine the records")
 args = parser.parse_args()
 
-prevGaf = Gaf.Gaf()
 prevRnaId = ""
 prevAccession = ""
 fp = open(args.inputGaf)
 for line in fp:
-    nextGaf = Gaf.Gaf(line)
+    nextGaf = Grch37LiteGaf.GafMiRna(line, createFromBedInput=False)
     (nextRnaId,nextAccession) = nextGaf.featureId.split("|")
     nextRnaIdTokens = nextRnaId.split("-")
     if len(nextRnaIdTokens) == 4:
         nextRnaId = "%s-%s-%s" % (nextRnaIdTokens[0], nextRnaIdTokens[1],
                                   nextRnaIdTokens[2])
     if nextRnaId != prevRnaId or nextAccession != prevAccession:
-        if len(prevGaf.featureId) > 0:
+        if len(prevRnaId) > 0 and len(prevAccession) > 0:
             prevGaf.write(sys.stdout)
         prevGaf = nextGaf
         prevRnaId = nextRnaId
         prevAccession = nextAccession
     else:
-        prevGaf.featureCoordinates = "%s;%s" % (prevGaf.featureCoordinates, 
-                                                nextGaf.featureCoordinates)
-        prevGaf.compositeCoordinates = "%s;%s" % (prevGaf.compositeCoordinates,
-                                                  nextGaf.compositeCoordinates)
-
-        if not re.search(re.sub("\?", "\?", nextGaf.gene), prevGaf.gene):
-            prevGaf.gene = "%s;%s" % (prevGaf.gene, nextGaf.gene)
-        if not re.search(re.sub("\+", "\+", nextGaf.geneLocus), prevGaf.geneLocus):
-            prevGaf.geneLocus = "%s;%s" % (prevGaf.geneLocus, nextGaf.geneLocus)
-        if not re.search(re.sub("pre-miRNA=", "", nextGaf.featureInfo),
-                         prevGaf.featureInfo):
-            prevGaf.featureInfo = "%s,%s" % (prevGaf.featureInfo,
-                                             re.sub("pre-miRNA=", "",
-                                                    nextGaf.featureInfo))
+        prevGaf.combine(nextGaf)
 if nextGaf.featureId == prevGaf.featureId:
     prevGaf.write(sys.stdout)

@@ -105,7 +105,7 @@ for grch37LiteRow in grch37LiteFp:
             break
     if hg19Bed.name != grch37LiteBed.name:
         sys.exit("Error: missing entry for %s in the GRCh37-lite bed" % (hg19Bed.name))
-    gg = Grch37LiteGaf.GafDbSnp(grch37LiteBed, entryNumber)
+    gg = Grch37LiteGaf.GafDbSnp(grch37LiteBed, entryNumber=entryNumber)
     gg.featureInfo = basicSnpInfo(hg19Bed, args.snpTable, cursor)
     (gg.gene, gg.geneLocus) = mapSnpToLocus(grch37LiteBed, gg.featureInfo, cursor)
     entryNumber = entryNumber + 1

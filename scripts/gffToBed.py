@@ -44,10 +44,10 @@ parser.add_argument('-n', dest="name", default="",
                     help="Name of the field to use in the BED name field")
 args = parser.parse_args()
 typeSearchString = "^%s$" % (args.type)
+nameSearchStrings = args.name.split(",")
 
 gffIter = GFF.parse(args.inputGff)
 for chrom in gffIter:
-    chromName = "chr" + chrom.id
     for hit in chrom.features:
         if re.search(typeSearchString, hit.type):
             chromStart = hit.location.nofuzzy_start
@@ -59,8 +59,13 @@ for chrom in gffIter:
             if args.name == "":
                 hitName = hit.type
             else:
-                hitName = hit.qualifiers[args.name][0]
+                hitName = ""
+                delimiter = ""
+                for thisName in nameSearchStrings:
+                    hitName = "%s%s%s" % (hitName, delimiter,
+                                          hit.qualifiers[thisName][0])
+                    delimiter = ","
             print "%s\t%d\t%d\t%s\t1\t%s\t%d\t%d\t0\t1\t%d\t0" \
-                  % (chromName, int(chromStart), int(chromEnd),  hitName,
+                  % (chrom.id, int(chromStart), int(chromEnd),  hitName,
                      strand, int(chromStart), chromEnd,
                      int(chromEnd) - int(chromStart))
