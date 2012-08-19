@@ -466,7 +466,7 @@ ${inputDir}/dbSNP-test.genome.bed: ${testDir}/testDbSnp.txt
 
 ${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSnp.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
 	-cat ${testDir}/testDbSnp.txt \
-	| awk '{ print "grep \"" $$1 "|\" ${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
+	| awk '{ print "grep", $$1, "${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
 
 ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	zcat ${gaf21File} \
