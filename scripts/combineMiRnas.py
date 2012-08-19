@@ -43,5 +43,4 @@ for line in fp:
         prevAccession = nextAccession
     else:
         prevGaf.combine(nextGaf)
-if nextGaf.featureId == prevGaf.featureId:
-    prevGaf.write(sys.stdout)
+prevGaf.write(sys.stdout)

@@ -18,6 +18,5 @@ for line in sys.stdin.readlines():
         prevFeatureId = nextGaf.featureId
     else:
         prevGaf.combine(nextGaf)
-if nextGaf.featureId == prevGaf.featureId:
-    prevGaf.write(sys.stdout)
+prevGaf.write(sys.stdout)
 
