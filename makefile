@@ -466,7 +466,7 @@ ${inputDir}/dbSNP-test.genome.bed: ${testDir}/testDbSnp.txt
 
 ${testInput}/dbSNP.genome.2.1.gaf:	${testDir}/testDbSnp.txt ${scratchDir}/dbSNP.genome.gaf21.gaf
 	-cat ${testDir}/testDbSnp.txt \
-	| awk '{ print "grep", $$1, "${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
+	| awk '{ print "grep -w \"" $$1 "\" ${scratchDir}/dbSNP.genome.gaf21.gaf"}'  | bash > $@
 
 ${scratchDir}/dbSNP.genome.gaf21.gaf:
 	zcat ${gaf21File} \
@@ -655,8 +655,7 @@ ${testInput}/MAprobe.transcript.2.1.gaf:     ${testDir}/MAprobe.transcript.test.
 
 
 #
-# cat data/test/testMaProbe.txt \
-# |awk '{ print "grep", $1, "data/scratch/MAprobe.transcript.gaf21.gaf"}' \
+# cat data/test/testMaProbe.txt # |awk '{ print "grep", $1, "data/scratch/MAprobe.transcript.gaf21.gaf"}' \
 # |bash |awk -F'\t' '{ print $2, $8}' > data/test/MAprobe.transcript.test.txt
 
 ${gafDir}/MAprobe.transcript.gaf:	${scratchDir}/MAprobe.genome.raw.gaf ${gafDir}/transcript.genome.gaf ${inputDir}/transcript.genome.bed
