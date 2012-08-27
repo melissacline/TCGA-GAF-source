@@ -292,7 +292,7 @@ ${inputDir}/componentExon.genome.bed ${inputDir}/compositeExon.genome.bed ${inpu
 # miRNA data
 #
 
-${gafDir}/miRnaSet.gaf:	${miRnaSetGf}
+${gafDir}/miRnaSet.gaf:	${miRnaSetGaf}
 	cat ${miRnaSetGaf} | cut -f2- |perl -pe '$$_ = "$$.\t$$_"' > $@
 
 #

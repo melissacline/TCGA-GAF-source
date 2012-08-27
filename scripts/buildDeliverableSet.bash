@@ -13,7 +13,7 @@ splitSuperset.py $1
 cat gene.genome.gaf transcript.genome.gaf transcript.gene.gaf componentExon.genome.gaf \
     componentExon.gene.gaf componentExon.transcript.gaf compositeExon.genome.gaf \
     compositeExon.gene.gaf compositeExon.transcript.gaf junction.genome.gaf \
-    junction.transcript.gaf > geneSet.gaf
+    junction.gene.gaf junction.transcript.gaf > geneSet.gaf
 
 cat pre-miRNA.genome.gaf miRNA.genome.gaf miRNA.pre-miRNA.gaf > miRnaSet.gaf
 
