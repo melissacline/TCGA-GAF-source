@@ -12,6 +12,8 @@ parser.add_argument('miRnaGaf', type=str, help="miRNA GAF file")
 parser.add_argument('preMiRnaGaf', type=str, help="pre-miRNA GAF file")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
+parser.add_argument("-d", dest="debug", help="Show debugging info",
+                    default=False)
 args = parser.parse_args()
 
 entryNumber = args.entryNumber
@@ -41,5 +43,8 @@ for line in miRnaFp:
     miRnaToPreMiRna.featureInfo = ""
     entryNumber = entryNumber + 1
     miRnaToPreMiRna.entryNumber = entryNumber
-    miRnaToPreMiRna.write(sys.stdout)
+    if args.debug:
+        print "writing combination of", miRnaGaf.featureId, "and", preMiRnaGaf.featureId
+    if len(miRnaToPreMiRna.featureCoordinates) > 0:
+        miRnaToPreMiRna.write(sys.stdout)
 exit(0)
