@@ -2,7 +2,7 @@
 """
 gafToGff3: Given GAF input from stdin, translate it to GFF3 and send to stdout
 
-Usage: inputfile.gaf | gafToGff3 > inputfile.gff3
+Usage: cat inputfile.gaf | gafToGff3 > inputfile.gff3
 
 Note: this script uses the following modules:
 - the Gaf module (distributed along with it)
@@ -22,10 +22,12 @@ import sys
 
 
 
-def buildQualifierList(gafRecord):
+def buildQualifierList(gafRecord, featureSegment):
     """Given a GAF record, return a list of qualifiers for when
     the record will be turned into a SeqFeature object"""
     qualifiers = dict()
+    qualifiers["ID"] = gafRecord.featureId
+    qualifiers["featureCoordinates"] = featureSegment
     if len(gafRecord.featureDbVersion) > 0:
         qualifiers["featureDbVersion"] = gafRecord.featureDbVersion
     if len(gafRecord.featureDbDate) > 0:
@@ -42,30 +44,34 @@ def buildQualifierList(gafRecord):
     qualifiers["gene"] = gafRecord.gene
     qualifiers["geneLocus"] = gafRecord.geneLocus
     if len(gafRecord.featureAliases) > 0:
-        qualifiers["featureAliases"] = gafRecord.featureAliases
+        Qualifiers["featureAliases"] = gafRecord.featureAliases
     featureInfoFields = gafRecord.featureInfo.split(";")
     for info in featureInfoFields:
-        (key,value) = info.split("=")
-        key = key.lower()
-        qualifiers[key] = value
+        if re.search("=", info):
+            (key,value) = info.split("=")
+            key = key.lower()
+            qualifiers[key] = value
     return(qualifiers)
 
-
-
-def segmentToSeqFeature(segment, gafRecord, strand):
-    """Given a GAF record, a strand identifier, and a segment
-    from the feature-coordinate alignment, return an appropriate
-    SeqFeature object"""
-    qualifiers = buildQualifierList(gafRecord)
-    # Parse out the endpoints of the segment.  GAF coordiantes can
-    # either be (start-end), or if start and end are the same, they
-    # can be (start), with a single endpoint.
+def segmentToStartEnd(segment):
+    """Given a coordinate segment, return the start and end.  GAF
+    coordiantes can either be (start-end), or if start and end are the
+    same, they can be (start), with a single endpoint."""
     endpoints = segment.split("-")
     if len(endpoints) == 1:
         start = end = int(endpoints[0])
     else:
         start = int(endpoints[0])
         end = int(endpoints[1])
+    return((start, end))
+
+
+def segmentToSeqFeature(featureSegment, compositeSegment, gafRecord, strand):
+    """Given a GAF record, a strand identifier, and a segment
+    from the feature-coordinate alignment, return an appropriate
+    SeqFeature object"""
+    qualifiers = buildQualifierList(gafRecord, featureSegment)
+    (start, end) = segmentToStartEnd(compositeSegment)
     location=Bio.SeqFeature.FeatureLocation(Bio.SeqFeature.ExactPosition(start),
                                             Bio.SeqFeature.ExactPosition(end))
     sf = Bio.SeqFeature.SeqFeature(location=location, 
@@ -103,8 +109,11 @@ def gafToSeqRecords(gafRecord):
         strand = 0
         compositeCoordinateSegments = gafRecord.compositeCoordinates.split(",")
     features = []
-    for segment in compositeCoordinateSegments:
-        sf = segmentToSeqFeature(segment, gafRecord, strand)
+    featureCoordinateSegments = gafRecord.featureCoordinates.split(",")
+    assert(len(featureCoordinateSegments) == len(compositeCoordinateSegments))
+    for ii in range(len(compositeCoordinateSegments)):
+        sf = segmentToSeqFeature(featureCoordinateSegments[ii],
+                                 compositeCoordinateSegments[ii], gafRecord, strand)
         features.append(sf)
     record = Bio.SeqRecord.SeqRecord(Bio.Seq.Seq(""), id=seqId,
                                      features=features)

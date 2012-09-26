@@ -13,6 +13,8 @@ outputFp = None
 prevTargetGafFile = ""
 gafFp = open(args.supersetGaf)
 for line in gafFp:
+    line = line.rstrip()
+    
     #
     # Parse the GAF entry out of the line, and see what the feature and
     # composite types are.
