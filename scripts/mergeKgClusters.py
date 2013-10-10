@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -92,29 +93,35 @@ def findOverlappingClusters(clusterSet, clusterId1, cursor):
     return(clusterSet)
 
 
-def addTranscriptsToCluster(clusterToAdd, clusterToAddTo, cursor):
+def addTranscriptsToCluster(clusterToAdd, clusterToAddTo, table, cursor):
     """Add the transcripts from the first cluster into the second cluster"""
     cursor.execute("""select transcript from knownIsoforms 
                        where clusterId = %s""" % (clusterToAdd))
     for row in cursor.fetchall():
-        cursor.execute("""insert into knownIsoformsClustersMerged
+        cursor.execute("""insert into %s
                           (clusterId, transcript) values (%s, '%s')""" \
-                       % (clusterToAddTo, row["transcript"]))
+                       % (table, clusterToAddTo, row["transcript"]))
         
+parser = argparse.ArgumentParser()
+parser.add_argument('db', type=str, help="database with knownGene table",
+                    default="hg19")
+parser.add_argument('destinationTable', type=str, default="hg19",
+                    help="Table that will contain the merged clusters")
+args = parser.parse_args()
 
-db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
-                     passwd="S3attl3-S7u")
+db = MySQLdb.connect(read_default_file="~/.my.hg19.cnf")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
-#cursor.execute("""create table kgOverlappingClusters as
-#                 select kc1.clusterId as clusterId1, kc2.clusterId as clusterId2
-#                    from knownCanonical kc1,knownGene kg1, knownCanonical kc2,
-#                         knownGene kg2
-#                   where kg1.name = kc1.transcript and kg2.name = kc2.transcript
-#                     and kc1.clusterId != kc2.clusterId and kc1.chrom = kc2.chrom
-#                     and kg1.strand = kg2.strand and kg1.txStart < kg2.txEnd
-#                     and kg2.txStart < kg1.txEnd
-#                     and kc1.clusterId < kc2.clusterId""")
+cursor.execute("""drop table if exists kgOverlappingClusters""")
+cursor.execute("""create table kgOverlappingClusters as
+                 select kc1.clusterId as clusterId1, kc2.clusterId as clusterId2
+                    from knownCanonical kc1,knownGene kg1, knownCanonical kc2,
+                         knownGene kg2
+                   where kg1.name = kc1.transcript and kg2.name = kc2.transcript
+                     and kc1.clusterId != kc2.clusterId and kc1.chrom = kc2.chrom
+                     and kg1.strand = kg2.strand and kg1.txStart < kg2.txEnd
+                     and kg2.txStart < kg1.txEnd
+                     and kc1.clusterId < kc2.clusterId""")
 clustersCopied = set()
 cursor.execute("select clusterId from knownCanonical order by clusterId")
 for row in cursor.fetchall():
@@ -124,6 +131,7 @@ for row in cursor.fetchall():
         overlappingClusters = findOverlappingClusters(set(), clusterId, cursor)
         for clusterInOverlap in overlappingClusters:
             print "copying transcripts from", clusterInOverlap, "to", clusterId
-            addTranscriptsToCluster(clusterInOverlap, clusterId, cursor)
+            addTranscriptsToCluster(clusterInOverlap, clusterId, 
+                                    args.destinationTable, cursor)
             clustersCopied.add(clusterInOverlap)
 
