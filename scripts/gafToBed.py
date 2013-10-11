@@ -39,8 +39,7 @@ def gafLineToBedLine(gafData):
     bedLineDelimiter = "";
     name = gafData.featureId
     for subCoordinates in gafData.compositeCoordinates.split(";"):
-        if re.search(":", subCoordinates) \
-               and re.search("^chr", subCoordinates):
+        if re.search(":", subCoordinates):
             (chrom, coordinateBlocks, strand) = subCoordinates.split(":")
             chrom = re.sub("chrM_rCRS", "chrM", chrom)
             coordinateRanges = rangeCleanup(coordinateBlocks.split(","))
