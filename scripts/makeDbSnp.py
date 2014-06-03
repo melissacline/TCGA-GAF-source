@@ -70,8 +70,7 @@ def mapSnpToLocus(bedData, snpInfo, cursor):
     
     
 
-db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
-                     passwd="S3attl3-S7u")
+db = MySQLdb.connect(host="localhost", db="hg19", read_default_file="~/.my.cnf")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
 parser = argparse.ArgumentParser()

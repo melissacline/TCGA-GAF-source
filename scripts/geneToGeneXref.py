@@ -14,8 +14,9 @@ parser.add_argument('grch37LiteBed', type=str,
                     help="Input bed file in GRCh37-lite coordinates")
 args = parser.parse_args()
 
-db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
-                     passwd="S3attl3-S7u")
+db = MySQLdb.connect(host="localhost", db="hg19", read_default_file="~/.my.cnf")
+#user="hgcat",
+#                     passwd="GiMMEd@PWR!!")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
 #

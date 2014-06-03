@@ -14,8 +14,7 @@ parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
 args = parser.parse_args()
 
-db = MySQLdb.connect(host="localhost", db="hg19", user="hgcat",
-                     passwd="S3attl3-S7u")
+db = MySQLdb.connect(host="localhost", db="hg19", read_default_file="~/.my.cnf")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
 
@@ -27,7 +26,7 @@ for line in fp:
     tokens = bb.name.split(";")
     clusterId = tokens.pop()
     bb.name = ";".join(tokens)
-    gg = Grch37LiteGaf.GafGene(bb, entryNumber)
+    gg = Grch37LiteGaf.GafGene(bb, entryNumber, True)
     geneXrefQuery = """SELECT geneName, grch37LiteLocus FROM gafGeneXref
                         WHERE clusterId = '%s'""" % (clusterId)
     cursor.execute(geneXrefQuery)
