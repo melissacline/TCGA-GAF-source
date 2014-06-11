@@ -34,6 +34,21 @@ class Grch37LiteGaf(Gaf.Gaf):
             self.featureDbDate = '20130731'
             self._getGafCoordsFromGtf(inputLine)
 
+### work in progress ###
+    def _getCompositeCoordsFromGtf(self, GTF):
+        """Get the CompositeCoordinates from a list of exonstarts and exonends"""
+        genoCoords = []
+	if not hasattr(GTF,'exonStarts'):	# in exons, exonstarts and exonends do not exist
+	    GTF.exonStarts = [GTF.start,]
+	    GTF.exonEnds = [GTF.stop,]
+        for a, b in zip(GTF.exonStarts, GTF.exonEnds):
+            genoCoords.append(('-').join([str(a),str(b)]))
+            endpos = startpos + b - a
+            txCoords.append(('-').join([str(startpos), str(endpos)]))
+            startpos = endpos + 1
+        self.compositeCoords = (':').join([GTF.chr, (',').join(i for i in genoCoords), GTF.strand])
+#########################
+
     def _getGafCoordsFromGtf(self, GTF):
         """Get the CompositeCoordinates and map corresponding FeatureCoordinates from a list of exonstarts and exonends"""
         genoCoords = []
@@ -47,7 +62,7 @@ class Grch37LiteGaf(Gaf.Gaf):
             endpos = startpos + b - a
             txCoords.append(('-').join([str(startpos), str(endpos)]))
             startpos = endpos + 1
-        self.compositeCoords = (':').join([GTF.chr, (',').join(i for i in genoCoords), GTF.strand])
+        self.compositeCoordinates = (':').join([GTF.chr, (',').join(i for i in genoCoords), GTF.strand])
         if GTF.strand == '-':               # feature coords must be recalculated in reverse
             startpos = 1
             txCoords = []
@@ -55,7 +70,7 @@ class Grch37LiteGaf(Gaf.Gaf):
                 endpos = startpos + b - a
                 txCoords.append(('-').join([str(startpos), str(endpos)]))
                 startpos = endpos + 1
-        self.featureCoords = (',').join(i for i in txCoords)
+        self.featureCoordinates = (',').join(i for i in txCoords)
 
     def _coordinatesFromBed(self, inputBed):
         """Given an input bed object, fill in the coordinate field of this
