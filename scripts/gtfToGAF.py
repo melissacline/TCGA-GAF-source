@@ -2,8 +2,6 @@
 
 import sys, os, re, getopt
 
-libFolder="/cluster/home/jeltje/lib/"
-if libFolder not in sys.path: sys.path.append(libFolder)
 from RangeFinder import RangeFinder
 from GtfParse import GeneTable, FeatureObject, Gene, TranscriptTable, Transcript
 import Grch37LiteGaf
