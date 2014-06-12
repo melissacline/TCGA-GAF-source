@@ -8,7 +8,7 @@ import Grch37LiteGaf
 
 
 
-usage = sys.argv[0]+""" <gtf format inputfile>
+usage = sys.argv[0]+""" <gtf format inputfile> <base filename>
 
 Create gene, transcript, exon level GAF files from input Gencode file
 
@@ -60,16 +60,21 @@ for o, a  in opts:
 
 #print sys.path
 
+if len(args) != 2:
+    sys.exit(usage)
+
+baseName = args[1] 
 gtfGenes = []	# list of gene IDs
 gtfTranscripts = TranscriptTable()
 curGene = Gene(Transcript=None, isEmpty = True)	# create empty gene object
 
-if len(args) != 1:
-    sys.exit(usage)
-    
-gFile = open('gene.genome.v4_0.gaf', 'w')
-tFile = open('transcript.genome.v4_0.gaf', 'w')
-eFile = open('exon.genome.v4_0.gaf', 'w')
+
+gf=('.').join(['gene','genome',baseName,'gaf'])
+tf=('.').join(['transcript','genome',baseName,'gaf'])
+ef=('.').join(['exon','genome',baseName,'gaf'])
+gFile = open(gf, 'w')
+tFile = open(tf, 'w')
+eFile = open(ef, 'w')
 
 f = open(args[0],'r')
 for gtf_line in f:
@@ -80,6 +85,8 @@ for gtf_line in f:
     if feats.descriptor in ['transcript', 'gene']:	# skip non standard GTF lines
 	continue
     if not 'basic' in feats.descDict['tag']:		# only keep basic gencode set
+	continue
+    if 'PAR' in feats.descDict['tag']:		# remove chrY pseudoautosomal region (not part of GRCh37-lite)
 	continue
     if not gtfTranscripts.addFeatToTranscript(feats):
         # transcript does not yet exist in table: create and add first feature
