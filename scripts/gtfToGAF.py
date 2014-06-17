@@ -24,17 +24,19 @@ def gpGaf(gene, gFile, tFile, eFile):
 	return False
     gg = Grch37LiteGaf.GafGene(gene, createFromGTF=True)
     gg.write(gFile)
+    exonIds = set()
     for tx in gene.features:
         tg = Grch37LiteGaf.GafTranscript(tx, createFromGTF=True)
 	tg.geneLocus = gg.geneLocus
 	tg.gene = gg.gene
         tg.write(tFile)
-    for e in tx.features:
-    	if e.descriptor == 'exon':
-	    eg = Grch37LiteGaf.GafExon(e, createFromGTF=True)
-	    eg.geneLocus = gg.geneLocus
-	    eg.gene = gg.gene
-	    eg.write(eFile)
+        for e in tx.features:
+       	    if e.descriptor == 'exon' and e.eId not in exonIds:
+	        eg = Grch37LiteGaf.GafExon(e, createFromGTF=True)
+	        eg.geneLocus = gg.geneLocus
+	        eg.gene = gg.gene
+	        eg.write(eFile)
+	    exonIds.add(e.eId)
 
 
 
