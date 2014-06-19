@@ -15,8 +15,6 @@ parser.add_argument('grch37LiteBed', type=str,
 args = parser.parse_args()
 
 db = MySQLdb.connect(host="localhost", db="hg19", read_default_file="~/.my.cnf")
-#user="hgcat",
-#                     passwd="GiMMEd@PWR!!")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
 #
