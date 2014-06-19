@@ -19,6 +19,7 @@ def splitGtfId(gtfIds):
 def getDescriptions(gtfIds):
     """ extracts key-value pairs from the last GTF field such as transcript and gene name"""
     # this appends items rather than overwrite them 
+    gtfIds = gtfIds.rstrip(';')
     descDict = defaultdict(list)
     for i in gtfIds.split("; "):
     	s = filter(None,(i.split(" ")))		# removes empty entries
@@ -41,11 +42,18 @@ class FeatureObject(object):
 	self.descDict = getDescriptions(feat[8])
 	self.gId = self.descDict["gene_id"][0]
 	self.tId = self.descDict["transcript_id"][0]
-	self.geneSymbol = self.descDict["gene_name"][0]
-	self.geneStatus = self.descDict["gene_status"][0]
-	self.transcriptStatus = self.descDict["transcript_status"][0]
 	self.geneType = self.descDict["gene_type"][0]
+	self.geneStatus = self.descDict["gene_status"][0]
+	self.geneSymbol = self.descDict["gene_name"][0]
 	self.transcriptType = self.descDict["transcript_type"][0]
+	self.transcriptStatus = self.descDict["transcript_status"][0]
+	self.transcriptSymbol = self.descDict["transcript_name"][0]
+	self.havanaGene = ''
+	if "havana_gene" in self.descDict:
+            self.havanaGene = self.descDict["havana_gene"][0]
+	self.havanaTranscript = ''
+	if "havana_transcript" in self.descDict:
+            self.havanaTranscript = self.descDict["havana_transcript"][0]
 	self.eId = ''
 	if "exon_id" in self.descDict:
 	    self.eId = self.descDict["exon_id"][0]
@@ -65,11 +73,14 @@ class Gene(object):
 	self.descDict = Transcript.descDict
 	self.gId = self.descDict["gene_id"][0]
 	self.tId = self.descDict["transcript_id"][0]
-	self.geneSymbol = self.descDict["gene_name"][0]
-	self.geneStatus = self.descDict["gene_status"][0]
-	self.transcriptStatus = self.descDict["transcript_status"][0]
 	self.geneType = self.descDict["gene_type"][0]
+	self.geneStatus = self.descDict["gene_status"][0]
+	self.geneSymbol = self.descDict["gene_name"][0]
 	self.transcriptType = self.descDict["transcript_type"][0]
+	self.transcriptStatus = self.descDict["transcript_status"][0]
+	self.transcriptSymbol = self.descDict["transcript_name"][0]
+	self.havanaGene = Transcript.havanaGene
+	self.havanaTranscript = Transcript.havanaTranscript
         self.gId = Transcript.gId
         self.features.append(Transcript)
     def printout(self):
@@ -93,24 +104,6 @@ class Gene(object):
 	    txEnds.append(t.locusEnd)
 	self.locusStart = min(txStarts)
 	self.locusEnd = max(txEnds)
-	self.compositeCoords, self.featureCoords = getGafCoords(self.exonStarts, self.exonEnds, self.chr, self.strand)
-
-def getGafCoords(exonStarts, exonEnds, chr, strand):
-    """Get the CompositeCoordinates and corresponding FeatureCoordinates"""
-    genoCoords = []
-    txCoords = []
-    startpos = 1
-    for a, b in zip(sorted(exonStarts), sorted(exonEnds)):
-        genoCoords.append(('-').join([str(a),str(b)]))
-        endpos = startpos + b - a
-        txCoords.append(('-').join([str(startpos), str(endpos)]))
-        startpos = endpos + 1
-    compositeCoords = (':').join([chr, (',').join(i for i in genoCoords), strand])  
-    featureCoords = (',').join(i for i in txCoords)  
-    return compositeCoords, featureCoords
-
-		
-
 
 def flatten(gStarts, gEnds, tStarts, tEnds):
 	"""Given two sets of exon ranges, extend the boundaries of the first set with those of the second and merge or add exons as appropriate"""
@@ -145,11 +138,14 @@ class Transcript(object):
 	self.descDict = FeatureObject.descDict
 	self.gId = self.descDict["gene_id"][0]
 	self.tId = self.descDict["transcript_id"][0]
-	self.geneSymbol = self.descDict["gene_name"][0]
-	self.geneStatus = self.descDict["gene_status"][0]
-	self.transcriptStatus = self.descDict["transcript_status"][0]
 	self.geneType = self.descDict["gene_type"][0]
+	self.geneStatus = self.descDict["gene_status"][0]
+	self.geneSymbol = self.descDict["gene_name"][0]
 	self.transcriptType = self.descDict["transcript_type"][0]
+	self.transcriptStatus = self.descDict["transcript_status"][0]
+	self.transcriptSymbol = self.descDict["transcript_name"][0]
+	self.havanaGene = FeatureObject.havanaGene
+	self.havanaTranscript = FeatureObject.havanaTranscript
         self.tId = FeatureObject.tId
         self.gId = FeatureObject.gId
         self.features.append(FeatureObject)
@@ -164,6 +160,7 @@ class Transcript(object):
 	self.exonStarts = []
 	self.exonEnds = []
 	self.eIds = []
+	self.features =  sorted(self.features, key=lambda f: f.start) 	# sort features by start position
         for f in self.features:
             if (f.descriptor == "exon"):
                 self.exonStarts.append(f.start)
@@ -173,7 +170,6 @@ class Transcript(object):
 	self.locusEnd = max(self.exonEnds)
 	self.exonStarts = sorted(self.exonStarts)
 	self.exonEnds = sorted(self.exonEnds)
-	self.compositeCoords, self.featureCoords = getGafCoords(self.exonStarts, self.exonEnds, self.chr, self.strand)
     def makeCDSExons(self):
         """ take features list and create a list of exonstarts and stops only for the CDS (for determining overlap)"""
         self.cdsStarts = []

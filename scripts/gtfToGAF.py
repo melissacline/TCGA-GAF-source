@@ -1,84 +1,91 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-import sys, os, re, getopt
+import sys, os, re, getopt, argparse
 
 from RangeFinder import RangeFinder
-from GtfParse import GeneTable, FeatureObject, Gene, TranscriptTable, Transcript
+from GtfParse import FeatureObject, Gene, TranscriptTable, Transcript
 import Grch37LiteGaf
 
+parser = argparse.ArgumentParser(description="Create gene, transcript, exon level GAF files from input Gencode GTF file")
+parser.add_argument('inputGtf', type=str,help="Input GTF file")
+parser.add_argument('baseName', type=str,help="Base filename such as v4.0 or tmp. Outputs will be gene.genome.<baseName>.gaf, \
+	transcript.genome.<baseName>.gaf and exon.genome.<baseName>.gaf")
+parser.add_argument("-n", dest="entryNumber", help="Initial entry number",default="0")
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
+args = parser.parse_args()
 
-
-usage = sys.argv[0]+""" <gtf format inputfile> <base filename>
-
-Create gene, transcript, exon level GAF files from input Gencode file
-
-Options:         
-
-"""
-
-def gpGaf(gene, gFile, tFile, eFile):
+def gpGaf(gene, gFile, tFile, eFile, jFile, entryNumber):
     """Create GAF records for gene, transcripts, and exons from input gene object"""
     try:
 	gene.getExons()
     except AttributeError:		# empty object: print nothing
-	return False
-    gg = Grch37LiteGaf.GafGene(gene, createFromGTF=True)
+	return entryNumber
+    entryNumber += 1
+    gg = Grch37LiteGaf.GafGene(gene, createFromGTF=True, entryNumber=entryNumber)
     gg.write(gFile)
     exonIds = set()
+    junctionIds = set()
     for tx in gene.features:
-        tg = Grch37LiteGaf.GafTranscript(tx, createFromGTF=True)
+        entryNumber += 1
+        tg = Grch37LiteGaf.GafTranscript(tx, createFromGTF=True, entryNumber=entryNumber)
 	tg.geneLocus = gg.geneLocus
 	tg.gene = gg.gene
         tg.write(tFile)
+	junction = False	# tracker for exon ends for creating junctions
         for e in tx.features:
-       	    if e.descriptor == 'exon' and e.eId not in exonIds:
-	        eg = Grch37LiteGaf.GafExon(e, createFromGTF=True)
-	        eg.geneLocus = gg.geneLocus
-	        eg.gene = gg.gene
-	        eg.write(eFile)
-	    exonIds.add(e.eId)
+       	    if e.descriptor == 'exon':
+		if junction:
+		    junction.finish(e.eId, e.start)
+		    if junction.id not in junctionIds:
+			# create GAF junction
+                        entryNumber += 1
+			jg = Grch37LiteGaf.GafJunction(junction, createFromJunction=True, entryNumber=entryNumber)
+	                jg.geneLocus = gg.geneLocus
+	                jg.gene = gg.gene
+	                jg.write(jFile)
+		    junctionIds.add(junction.id)
+	        if e.eId not in exonIds:
+                    entryNumber += 1
+	            eg = Grch37LiteGaf.GafExon(e, createFromGTF=True, entryNumber=entryNumber)
+	            eg.geneLocus = gg.geneLocus
+	            eg.gene = gg.gene
+	            eg.write(eFile)
+	        exonIds.add(e.eId)
+		junction = junctionInfo(e.eId, e.stop, e.chr, e.strand)
+    return entryNumber
 
-
+class junctionInfo(object):
+    """Holder for junction information"""
+    def __init__(self, id, pos, chr, strand):
+	self.startId = id
+	self.startPos = pos
+	self.chr = chr
+	self.strand = strand
+    def finish(self, id, pos):
+	self.endId = id
+	self.endPos = pos
+	self.id = (':').join([self.startId, self.endId])
 
 # Main
 
-# read in command line and options
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "dc")
-except getopt.GetoptError:
-    
-        # print help information and exit:
-    print usage
-    print "ERROR did not recognize input\n"
-    sys.exit(2)
-
-
-for o, a  in opts:
-    if o == "-h":
-        print usage
-        sys.exit()
-
-# Read in gtf line, create FeatureObject and if neccessary, a gene object, then add feature to gene
-
-#print sys.path
-
-if len(args) != 2:
-    sys.exit(usage)
-
-baseName = args[1] 
 gtfGenes = []	# list of gene IDs
 gtfTranscripts = TranscriptTable()
 curGene = Gene(Transcript=None, isEmpty = True)	# create empty gene object
 
 
-gf=('.').join(['gene','genome',baseName,'gaf'])
-tf=('.').join(['transcript','genome',baseName,'gaf'])
-ef=('.').join(['exon','genome',baseName,'gaf'])
+gf=('.').join(['gene','genome',args.baseName,'gaf'])
+tf=('.').join(['transcript','genome',args.baseName,'gaf'])
+ef=('.').join(['exon','genome',args.baseName,'gaf'])
+jf=('.').join(['junction','genome',args.baseName,'gaf'])
 gFile = open(gf, 'w')
 tFile = open(tf, 'w')
 eFile = open(ef, 'w')
+jFile = open(jf, 'w')
+entryNumber = int(args.entryNumber)
 
-f = open(args[0],'r')
+f = open(args.inputGtf,'r')
 for gtf_line in f:
     gtf_line = gtf_line.strip()
     if not gtf_line or gtf_line.startswith("#"):            # skip empty lines
@@ -94,7 +101,7 @@ for gtf_line in f:
         # transcript does not yet exist in table: create and add first feature
         newTx = Transcript(feats)
 	if not curGene.add(newTx):
-	    gpGaf(curGene, gFile, tFile, eFile)
+	    entryNumber = gpGaf(curGene, gFile, tFile, eFile, jFile, entryNumber)
 	    curGene = Gene(Transcript=newTx)
 	    gtfTranscripts = TranscriptTable()	# reset table
 	gtfTranscripts.add(newTx)
@@ -102,7 +109,9 @@ f.close()
 
 # print last
 
-gpGaf(curGene, gFile, tFile, eFile)
+entryNumber=gpGaf(curGene, gFile, tFile, eFile, jFile, entryNumber)
+print "%d entries printed" % entryNumber
 gFile.close()
 tFile.close()
 eFile.close()
+jFile.close()

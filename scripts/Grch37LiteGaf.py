@@ -7,7 +7,7 @@ import re
 class Grch37LiteGaf(Gaf.Gaf):
     """This class contains GAF objects in which the composite is the GRCh37-lite
     genome"""
-    def __init__(self, inputLine, entryNumber=0, createFromBedInput=False, createFromGTF=True):
+    def __init__(self, inputLine, entryNumber=0, createFromBedInput=False, createFromGTF=True, createFromJunction=False):
         """Derive a Grch37LiteGaf object.  If there is an input bed line,
         then derive it from the bed object"""
         if not (createFromBedInput or createFromGTF):
@@ -22,7 +22,7 @@ class Grch37LiteGaf(Gaf.Gaf):
             self.compositeDbVersion = "GRCh37-lite"
             self.alignmentType = "pairwise"
             self._coordinatesFromBed(inputLine)
-        elif createFromGTF:
+        elif createFromGTF or createFromJunction:
             super(Grch37LiteGaf, self).__init__(line=None, entryNumber=entryNumber)
             self.compositeId = "GRCh37-lite"
             self.compositeType = "genome"
@@ -32,7 +32,8 @@ class Grch37LiteGaf(Gaf.Gaf):
             self.featureDbSource = "Gencode"
             self.featureDbVersion = "V19"
             self.featureDbDate = '20130731'
-            self._getGafCoordsFromGtf(inputLine)
+	    if not createFromJunction:
+                self._getGafCoordsFromGtf(inputLine)
 
 ### work in progress ###
     def _getCompositeCoordsFromGtf(self, GTF):
@@ -127,8 +128,10 @@ class GafGene(Grch37LiteGaf):
             self.featureType = "gene"
             self.gene = ('|').join([inputLine.geneSymbol, inputLine.gId])
             self.geneLocus = "%s:%d-%d:%s" % (inputLine.chr, inputLine.exonStarts[0], inputLine.exonEnds[-1], inputLine.strand)
-            self.featureInfo = "Gene_type=%s;Gene_status=%s" % (inputLine.geneType, inputLine.geneStatus)
+            self.featureInfo = "Gene_type=%s;Gene_status=%s;Gene_symbol=%s" % (inputLine.geneType, 
+			inputLine.geneStatus, inputLine.geneSymbol)
             self.featureId = ('|').join([inputLine.geneSymbol, inputLine.gId])	# define here?
+	    self.featureAliases = inputLine.havanaGene
 
 
 class GafTranscript(Grch37LiteGaf):
@@ -174,8 +177,9 @@ class GafTranscript(Grch37LiteGaf):
        	    self.featureSeqFileName = 'GencodeV19.fa'       # contains all transcript sequences
             self.featureId = inputLine.tId
             #must add CDS info to featureInfo field
-            self.featureInfo = "Transcript_type=%s;Transcript_status=%s" % (inputLine.transcriptType,
-                                                                        inputLine.transcriptStatus)
+            self.featureInfo = "Transcript_type=%s;Transcript_status=%s;Transcript_symbol=%s" % (inputLine.transcriptType,
+                                     inputLine.transcriptStatus, inputLine.transcriptSymbol)
+	    self.featureAliases = inputLine.havanaTranscript
 
 
 class GafExon(Grch37LiteGaf):
@@ -198,7 +202,37 @@ class GafExon(Grch37LiteGaf):
 	elif createFromGTF:
             self.featureType = 'exon'
             self.featureId = inputLine.eId
-#            self.compositeCoordinates, self.featureCoordinates = getGafCoords([inputLine.start], [GTF.stop], GTF.chr, GTF.strand)
+
+class GafJunction(Grch37LiteGaf):
+    """GAF representation of a splice junction"""
+    def __init__(self, inputLine, entryNumber=0, createFromBedInput=False, createFromJunction=True,
+                 junction=0):
+        super(GafJunction, self).__init__(inputLine, entryNumber=entryNumber,
+                                      createFromBedInput=createFromBedInput, 
+				      createFromJunction=createFromJunction)
+        if createFromBedInput:
+            self.featureType = "junction"
+            self.featureDbSource = "calculated"
+            self.featureSeqFileName = "genomic"
+            self.featureCoordinates = "1,2"
+            self.featureId = "%s:%d:%s,%s:%d:%s" \
+                         % (inputBed.chrom, inputBed.blocks[junction].end,
+                            inputBed.strand, inputBed.chrom,
+                            inputBed.blocks[junction+1].start+1,
+                            inputBed.strand)
+            self.compositeCoordinates = "%s:%d,%d:%s" \
+                                    % (inputBed.chrom,
+                                       inputBed.blocks[junction].end,
+                                       inputBed.blocks[junction+1].start+1,
+                                       inputBed.strand)
+	elif createFromJunction:
+            self.featureType = 'junction'
+            self.featureCoordinates = "1,2"
+	    self.featureId = inputLine.id
+	    self.compositeCoordinates = "%s:%d,%d:%s" % (inputLine.chr, inputLine.startPos, 
+					inputLine.endPos, inputLine.strand)
+        
+                
 
 
 
@@ -306,28 +340,4 @@ class GafAffySnp(Grch37LiteGaf):
             self.compositeCoordinates = self.singleBaseCoordFixup(self.compositeCoordinates)
         
             
-
-class GafJunction(Grch37LiteGaf):
-    """GAF representation of a splice junction"""
-    def __init__(self, inputBed, entryNumber=0, createFromBedInput=True,
-                 junction=0):
-        super(GafJunction, self).__init__(inputBed, entryNumber=entryNumber,
-                                          createFromBedInput=createFromBedInput)
-        self.featureType = "junction"
-        self.featureDbSource = "calculated"
-        self.featureSeqFileName = "genomic"
-        self.featureCoordinates = "1,2"
-        self.featureId = "%s:%d:%s,%s:%d:%s" \
-                         % (inputBed.chrom, inputBed.blocks[junction].end,
-                            inputBed.strand, inputBed.chrom,
-                            inputBed.blocks[junction+1].start+1,
-                            inputBed.strand)
-        self.compositeCoordinates = "%s:%d,%d:%s" \
-                                    % (inputBed.chrom,
-                                       inputBed.blocks[junction].end,
-                                       inputBed.blocks[junction+1].start+1,
-                                       inputBed.strand)
-
-        
-                
 
