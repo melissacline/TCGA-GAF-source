@@ -35,7 +35,6 @@ class Grch37LiteGaf(Gaf.Gaf):
 	    if not createFromJunction:
                 self._getGafCoordsFromGtf(inputLine)
 
-### work in progress ###
     def _getCompositeCoordsFromGtf(self, GTF):
         """Get the CompositeCoordinates from a list of exonstarts and exonends"""
         genoCoords = []
@@ -48,7 +47,6 @@ class Grch37LiteGaf(Gaf.Gaf):
             txCoords.append(('-').join([str(startpos), str(endpos)]))
             startpos = endpos + 1
         self.compositeCoords = (':').join([GTF.chr, (',').join(i for i in genoCoords), GTF.strand])
-#########################
 
     def _getGafCoordsFromGtf(self, GTF):
         """Get the CompositeCoordinates and map corresponding FeatureCoordinates from a list of exonstarts and exonends"""
@@ -172,13 +170,18 @@ class GafTranscript(Grch37LiteGaf):
                 self.featureInfo = "%s;CDSstart=%d;CDSstop=%d" \
                                    % (self.featureInfo, cdsStart + 1, cdsStop)
 	elif createFromGTF:
-#            self.gene = ";".join(tokens)
             self.featureType = 'transcript'
        	    self.featureSeqFileName = 'GencodeV19.fa'       # contains all transcript sequences
             self.featureId = inputLine.tId
-            #must add CDS info to featureInfo field
             self.featureInfo = "Transcript_type=%s;Transcript_status=%s;Transcript_symbol=%s" % (inputLine.transcriptType,
                                      inputLine.transcriptStatus, inputLine.transcriptSymbol)
+            if not inputLine.hasStartCodon:
+                self.featureInfo += ";Warning=noStartCodon;FrameOffset=%d" % inputLine.firstFrame 
+            if not inputLine.hasStopCodon:
+                self.featureInfo += ";Warning=noStopCodon"
+	    if inputLine.localStart:
+                self.featureInfo += ";CDSstart=%d;CDSstop=%d" \
+                                   % (inputLine.localStart, inputLine.localEnd)
 	    self.featureAliases = inputLine.havanaTranscript
 
 

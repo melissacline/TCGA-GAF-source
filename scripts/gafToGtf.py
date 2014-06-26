@@ -32,9 +32,9 @@ class transcript(object):
         self.Gene = fields[15]
         GeneLocus = fields[16].split(':')    # chr18:10454625-10488698:+
         self.geneStart, self.geneStop = (int(i) for i in GeneLocus[1].split('-'))
-
         featureInfo = fields[18]    # this may contain CDSstart CDSstop in format Confidence=400;CDSstart=353;CDSstop=607
-        orf=dict(item.split("=") for item in featureInfo.split(";")) 
+	self._getWarnings(featureInfo)
+        orf=dict(item.split("=") for item in featureInfo.split(";"))
         try:
             self.cdsStart = int(orf['CDSstart'])
         except KeyError:
@@ -43,6 +43,20 @@ class transcript(object):
             self.cdsStop = int(orf['CDSstop'])
         except KeyError:
             self.cdsStop = None
+
+    def _getWarnings(self,featureInfo):
+	"""Warnings may occur multiple times in the featureInfo field. Get them out one by one"""
+	self.hasNoStart = False
+	self.hasNoStop = False
+	for item in featureInfo.split(";"):
+	    key, value = item.split("=") 
+	    if key == "Warning":
+	        if value == "noStartCodon":
+		    self.hasNoStart = True
+	        elif value == "noStopCodon":
+		    self.hasNoStop = True
+	    elif key == "FrameOffset":
+		self.frameOffset = int(value)
     def makeExonGTF(self):
         """Creates exons in GTF format"""
         self.exonGTF = []
@@ -56,7 +70,7 @@ class transcript(object):
             self.exonGTF.append(outline)
     def mapCDS(self):
         """Splits exons in UTRs, CDS, and stop codon, and adds a start codon (first three 
-        bases of the first CDS). Also creates split starts and stops where necessary"""
+        bases of the first CDS exon). Also creates split starts and stops where necessary"""
         self.exonTable = []    # holder for exon objects
         if not (self.cdsStart and self.cdsStop):
             return False
@@ -95,9 +109,6 @@ class transcript(object):
                 self.addSplitStartMinStrand(splitStart)
             if splitStop:
                 self.addSplitStopMinStrand(splitStop)
-
-
-############################################################
         elif self.strand == '+':
             for e in self.exons:
                 counter = 0
@@ -124,11 +135,36 @@ class transcript(object):
                 self.addSplitStartPlusStrand(splitStart)
             if splitStop:
                 self.addSplitStopPlusStrand(splitStop)
+        if (self.hasNoStart or self.hasNoStop):
+            self.removeStartOrStop()
+
+    def removeStartOrStop(self):
+	"""Remove start codon or stop codon if there's a warning in the gaf that they were
+	not present in the input GTF. Also check that there are no UTRs on that side"""
+	removeMe = set()
+	for i in xrange(len(self.exonTable)):
+	    if (self.exonTable[i].label == "start_codon" and self.hasNoStart):
+	        removeMe.add(i)
+	    elif (self.exonTable[i].label == "stop_codon" and self.hasNoStop):
+	        removeMe.add(i)
+	    elif (self.exonTable[i].label == "5UTR" and self.hasNoStart):
+	        print >>sys.stderr, "WARNING, found 5UTR in start codon free", self.FeatureID
+	    elif (self.exonTable[i].label == "3UTR" and self.hasNoStop):
+	        print >>sys.stderr, "WARNING, found 3UTR in stop codon free", self.FeatureID
+	self.exonTable =  [ self.exonTable[i] for i in xrange(len(self.exonTable)) if i not in removeMe ]
+	# correct frame in remaining CDS exons
+	if self.hasNoStart:
+	        curFrame = self.frameOffset
+	        for i in self.exonTable:
+		    if i.label == "CDS":
+		        i.readingFrame = curFrame
+                        curFrame = (3 - ((i.end - i.start +1 - curFrame) % 3)) %3
+
 
     def addGtfLinesPlusStrand(self, gCdsStart, gCdsStop, gstart, gend, curFrame, curLabel):
         """depending on whether the start and/or stop codon were found, create exons and assign labels"""
         if(gCdsStart and gCdsStop):    # CDS in single exon
-            if not gstart == gCdsStart:
+            if gstart < gCdsStart-1:
                 self.exonTable.append(exon(gstart, gCdsStart-1, '5UTR', '.'))
             self.exonTable.append(exon(gCdsStart, gCdsStart+2, 'start_codon', '0'))
             self.exonTable.append(exon(gCdsStart, gCdsStop-3, 'CDS', '0'))
@@ -137,7 +173,7 @@ class transcript(object):
                 self.exonTable.append(exon(gCdsStop, gend, '3UTR', '.'))
             curLabel = '3UTR'
         elif gCdsStart:
-            if not gstart == gCdsStart -1 :
+            if gstart < gCdsStart-1:
                 self.exonTable.append(exon(gstart, gCdsStart-1, '5UTR', '.'))
             self.exonTable.append(exon(gCdsStart, gCdsStart+2, 'start_codon', '0'))
             curLabel = 'CDS'
@@ -146,10 +182,10 @@ class transcript(object):
             # Frame for next exon is calculated as (3 - ((length-frame) mod 3)) mod 3.
             curFrame = (3 - ((gend - gCdsStart +1 - curFrame) % 3)) %3
         elif gCdsStop:
-            # if there's a split stop, the last added CDS exon must be changed
-            self.exonTable.append(exon(gstart, gCdsStop-3, 'CDS', curFrame))
+            if (gstart <= gCdsStop-3):
+                self.exonTable.append(exon(gstart, gCdsStop-3, 'CDS', curFrame))
             self.exonTable.append(exon(gCdsStop-2, gCdsStop, 'stop_codon', '0'))
-            if not (gCdsStop+1 > gend):
+	    if gCdsStop+1 < gend:
                 self.exonTable.append(exon(gCdsStop+1, gend, '3UTR', '.'))
             curLabel = '3UTR'
         else:    # if nothing particular was found inside the exon, keep the previous label
@@ -160,26 +196,28 @@ class transcript(object):
     def addGtfLinesMinStrand(self, gCdsStart, gCdsStop, gstart, gend, curFrame, curLabel):
         """depending on whether the start and/or stop codon were found, create exons and assign labels"""
         if(gCdsStart and gCdsStop):    # CDS in single exon
-            if not gstart == gCdsStart:
+            if gCdsStart + 1 < gend:
                 self.exonTable.append(exon(gCdsStart+1, gend, '5UTR', '.'))
             self.exonTable.append(exon(gCdsStart-2, gCdsStart, 'start_codon', '0'))
             self.exonTable.append(exon(gCdsStop+3, gCdsStart, 'CDS', '0'))
             self.exonTable.append(exon(gCdsStop, gCdsStop+2, 'stop_codon', '0'))
-            if not gend == gCdsStop+3:
+            if gstart < gCdsStop-1:
                 self.exonTable.append(exon(gstart, gCdsStop-1, '3UTR', '.'))
             curLabel = '3UTR'
         elif gCdsStart:
-            if not gend == gCdsStart+1:
+            if gCdsStart + 1 < gend:
                 self.exonTable.append(exon(gCdsStart+1, gend, '5UTR', '.'))
             self.exonTable.append(exon(gCdsStart-2, gCdsStart, 'start_codon', '0'))
             self.exonTable.append(exon(gstart, gCdsStart, 'CDS', '0'))
             curLabel = 'CDS'
+            curFrame = 0
             curFrame = (3 - ((gCdsStart -gstart +1 - curFrame) % 3)) %3
         elif gCdsStop:
-            self.exonTable.append(exon(gCdsStop+3, gend, 'CDS', curFrame))
+            if gCdsStop + 3 <= gend:
+                self.exonTable.append(exon(gCdsStop+3, gend, 'CDS', curFrame))
             self.exonTable.append(exon(gCdsStop, gCdsStop+2, 'stop_codon', '0'))
             curLabel = '3UTR'
-            if not gstart == gCdsStop-1:
+            if gstart < gCdsStop-1:
                 self.exonTable.append(exon(gstart, gCdsStop-1, curLabel, '.'))
         else:    # if nothing particular was found inside the exon, keep the previous label
             self.exonTable.append(exon(gstart, gend, curLabel, curFrame))
@@ -195,15 +233,17 @@ class transcript(object):
 		return True
     def addSplitStopPlusStrand(self, splitStop):
         """Correct exon table to add split stop. The splitStop variable (1 or 2) holds information on split location"""
+#	for i in xrange(len(self.exonTable)):
+#	    print >>sys.stderr, self.exonTable[i].label, str(self.exonTable[i].start), str(self.exonTable[i].end)
 	for i in xrange(len(self.exonTable)):
             if self.exonTable[i].label == 'stop_codon':
 		self.exonTable[i].start = self.exonTable[i].end - (splitStop -1)
 		self.exonTable[i].readingFrame = splitStop
-		self.exonTable[i-2].end -= 3 - splitStop
-		addStop = exon(self.exonTable[i-2].end + 1, self.exonTable[i-2].end + 1 + (splitStop %2 ), 
+		self.exonTable[i-1].end -= 3 - splitStop
+		addStop = exon(self.exonTable[i-1].end + 1, self.exonTable[i-1].end + 1 + (splitStop %2 ), 
                       'stop_codon', 0)
-		del(self.exonTable[i-1])
-		self.exonTable.insert(i-1, addStop)
+#		del(self.exonTable[i-1])
+		self.exonTable.insert(i, addStop)
 		return True
     def addSplitStartMinStrand(self, splitStart):
         """Correct exon table to add split start"""

@@ -10,6 +10,12 @@ def overlap(x, y, a, b):
                 return False
         return True
 
+def between(x, a, b):
+        "Takes three numbers, returns True if the first number lies between the other two"
+        if x<a or x >b:
+                return False
+        return True
+
 
 def splitGtfId(gtfIds):
     """ extracts transcript and gene name from last column in gtf"""
@@ -149,6 +155,9 @@ class Transcript(object):
         self.tId = FeatureObject.tId
         self.gId = FeatureObject.gId
         self.features.append(FeatureObject)
+	self.hasStartCodon = True	# unless defined otherwise
+	self.hasStopCodon = True
+	self.firstFrame = None
     def printout(self):
         for f in self.features:
                 print f.inline
@@ -171,13 +180,61 @@ class Transcript(object):
 	self.exonStarts = sorted(self.exonStarts)
 	self.exonEnds = sorted(self.exonEnds)
     def makeCDSExons(self):
-        """ take features list and create a list of exonstarts and stops only for the CDS (for determining overlap)"""
+        """ take features list and create a list of exonstarts and stops only for the CDS (for determining overlap)
+	also checks if the transcript has start_codon and stop_codon features"""
         self.cdsStarts = []
         self.cdsEnds= []
+	hasStartCodon = False
+	hasStopCodon = False
+	lastFrame = None
         for f in self.features:
             if (f.descriptor == "CDS"):
+		if self.firstFrame is None:
+		    self.firstFrame = int(f.frame)
+		lastFrame = int(f.frame)
                 self.cdsStarts.append(f.start)
                 self.cdsEnds.append(f.stop)
+            elif (f.descriptor == "start_codon"):
+                hasStartCodon = True
+            elif (f.descriptor == "stop_codon"):
+                hasStopCodon = True
+	if f.strand == '-':
+	    self.firstFrame = lastFrame
+        if self.cdsStarts:	# if there are CDS exons in this transcript
+	    if not hasStartCodon:
+		self.hasStartCodon = False
+	    if not hasStopCodon:
+		self.hasStopCodon = False
+	self.cdsStarts.sort()
+	self.cdsEnds.sort()
+    def getCDScoords(self):
+        """Map CDS exons to transcript exons to find start and stop coordinate in transcript"""
+        self.getExons()
+        self.makeCDSExons()
+	self.localStart = None
+	self.localEnd = None
+        if not self.cdsStarts:
+            return False
+        txCounter = 0
+        cStart = self.cdsStarts[0]
+        cEnd = self.cdsEnds[-1]
+	if self.strand == '+':
+            for a, b in zip(self.exonStarts, self.exonEnds):
+                if between(cStart, a, b):
+                    self.localStart = txCounter + (cStart - a + 1)
+                if between(cEnd, a, b):
+                    self.localEnd = txCounter + (cEnd - a + 1) + 3  	# add 3 for stop codon
+                    break
+                txCounter += b - a + 1
+	elif self.strand == '-':
+            for a, b in zip(reversed(self.exonStarts), reversed(self.exonEnds)):
+                if between(cEnd, a, b):
+                    self.localStart = txCounter + (b - cEnd + 1)
+                if between(cStart, a, b):
+                    self.localEnd = txCounter + (b - cStart + 1) +3	# add 3 for stop codon
+                    break
+                txCounter += b - a + 1
+
     def makeExons(self):
         """ take features list and create a list of exonstarts and stops. This means merging utr and exon features (for determining indentity)"""
         self.exonStarts = []

@@ -28,6 +28,7 @@ def gpGaf(gene, gFile, tFile, eFile, jFile, entryNumber):
     exonIds = set()
     junctionIds = set()
     for tx in gene.features:
+        tx.getCDScoords()
         entryNumber += 1
         tg = Grch37LiteGaf.GafTranscript(tx, createFromGTF=True, entryNumber=entryNumber)
 	tg.geneLocus = gg.geneLocus
