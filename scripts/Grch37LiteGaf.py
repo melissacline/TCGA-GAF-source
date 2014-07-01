@@ -175,6 +175,8 @@ class GafTranscript(Grch37LiteGaf):
             self.featureId = inputLine.tId
             self.featureInfo = "Transcript_type=%s;Transcript_status=%s;Transcript_symbol=%s" % (inputLine.transcriptType,
                                      inputLine.transcriptStatus, inputLine.transcriptSymbol)
+            if inputLine.refseqIds:
+                self.featureInfo += ";RefSeqId="+(";RefSeqId=").join(inputLine.refseqIds)
             if not inputLine.hasStartCodon:
                 self.featureInfo += ";Warning=noStartCodon;FrameOffset=%d" % inputLine.firstFrame 
             if not inputLine.hasStopCodon:

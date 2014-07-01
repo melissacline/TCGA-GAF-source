@@ -9,6 +9,7 @@ import Gaf
 
 parser = argparse.ArgumentParser(description="Create gene, transcript, exon level GAF files from input Gencode GTF file")
 parser.add_argument('inputGtf', type=str,help="Input GTF file")
+parser.add_argument('inputRefSeq', type=str,help="Input file with gencode and RefSeq IDs")
 parser.add_argument('baseName', type=str,help="Base filename such as v4.0 or tmp. Outputs will be gene.genome.<baseName>.gaf, \
 	transcript.genome.<baseName>.gaf and exon.genome.<baseName>.gaf")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",default="0")
@@ -145,6 +146,18 @@ outputFiles = OutFiles(args.baseName)
 
 entryNumber = int(args.entryNumber)
 junctionNumber = 0
+refseqDict = dict()
+f = open(args.inputRefSeq,'r')
+for rs_line in f:
+    rs_line = rs_line.strip()
+    fields = rs_line.split("\t")
+    enst = fields[0]
+    refseq = fields[1]
+    if enst in refseqDict:
+        refseqDict[enst].append(refseq)
+    else:
+        refseqDict[enst] = [refseq,]
+f.close()
 
 f = open(args.inputGtf,'r')
 for gtf_line in f:
@@ -161,6 +174,7 @@ for gtf_line in f:
     if not gtfTranscripts.addFeatToTranscript(feats):
         # transcript does not yet exist in table: create and add first feature
         newTx = Transcript(feats)
+        newTx.addRefseq(refseqDict)
 	if not curGene.add(newTx):
 	    entryNumber, junctionNumber = gpGaf(curGene, outputFiles, entryNumber, junctionNumber)
 	    curGene = Gene(Transcript=newTx)
