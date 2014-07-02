@@ -106,6 +106,7 @@ class Gene(object):
         for t in self.features:
 	    t.getExons()
 	    self.exonStarts, self.exonEnds = flatten(self.exonStarts, self.exonEnds, t.exonStarts, t.exonEnds)
+            assert(len(self.exonStarts) == len(self.exonEnds))
 	    txStarts.append(t.locusStart)
 	    txEnds.append(t.locusEnd)
 	self.locusStart = min(txStarts)
@@ -119,14 +120,19 @@ def flatten(gStarts, gEnds, tStarts, tEnds):
 		if overlap(gStarts[k], gEnds[k], tStarts[i], tEnds[i]):
 		    if i in removedTx:		# we're merging this exon and the previous one
 			gStarts[k] = gStarts[k-1]
-			gEnds[k-1] = max([gEnds[k],tEnds[i]])
+                        # change ends of all preceding exons that have the same start
+                        c = 1
+                        while c <= k:
+                            if gStarts[k] == gStarts[k-c]:
+                                gEnds[k-c] = max([gEnds[k],tEnds[i]])
+                            c += 1
 		    else:
 		        gStarts[k]= min([gStarts[k],tStarts[i]])
 		    gEnds[k]= max([gEnds[k],tEnds[i]])
 		    removedTx.add(i)
 	# add any tx exons that did not overlap any existing exons
 	gStarts.extend(delete_by_indices(tStarts, removedTx))
-	gEnds.extend (delete_by_indices(tEnds, removedTx))
+	gEnds.extend(delete_by_indices(tEnds, removedTx))
 	# Remove duplicate exons (happens when one tx exon overlaps multiple gene exons)
 	return sorted(list(set(gStarts))), sorted(list(set(gEnds)))
 
@@ -158,6 +164,8 @@ class Transcript(object):
 	self.hasStartCodon = True	# unless defined otherwise
 	self.hasStopCodon = True
 	self.firstFrame = None
+    def addRefseq(self, refseqDict):
+        self.refseqIds = refseqDict.get(self.tId) 	# this returns None if not possible
     def printout(self):
         for f in self.features:
                 print f.inline
