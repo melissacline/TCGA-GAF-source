@@ -20,10 +20,9 @@ args = parser.parse_args()
 
 def gpGaf(gene, outputFiles, entryNumber, junctionNumber):
     """Create GAF records for gene, transcripts, and exons from input gene object"""
-    try:
-	gene.getExons()
-    except AttributeError:		# empty object: print nothing
+    if gene.gId == "emptyGene":
 	return entryNumber, junctionNumber
+    gene.getExons()
     entryNumber += 1
     gg = Grch37LiteGaf.GafGene(gene, createFromGTF=True, entryNumber=entryNumber)
     gg.write(outputFiles.gFile)
@@ -48,6 +47,8 @@ def gpGaf(gene, outputFiles, entryNumber, junctionNumber):
                     junct = junctionList.add(junct, junctionNumber)	# if the junction is already there, this will return that junction
                     entryNumber += 1
                     j = Grch37LiteGaf.GafJunction(junct, createFromJunction=True, entryNumber=entryNumber)
+	            j.geneLocus = gg.geneLocus
+	            j.gene = gg.gene
                     jt = Gaf.Gaf(entryNumber=entryNumber)
                     jt.featureToComposite(j, tg, fullBlocksOnly=False)
                     jt.write(outputFiles.jtFile)
