@@ -29,11 +29,11 @@ class Grch37LiteGaf(Gaf.Gaf):
             self.compositeDbSource = "NCBI"
             self.compositeDbVersion = "GRCh37-lite"
             self.alignmentType = "pairwise"
-            self.featureDbSource = "Gencode"
-            self.featureDbVersion = "V19"
-            self.featureDbDate = '20130731'
 	    if not createFromJunction:
                 self._getGafCoordsFromGtf(inputLine)
+                self.featureDbSource = "Gencode"
+                self.featureDbVersion = "V19"
+                self.featureDbDate = '20130731'
 
     def _getCompositeCoordsFromGtf(self, GTF):
         """Get the CompositeCoordinates from a list of exonstarts and exonends"""
@@ -232,6 +232,7 @@ class GafJunction(Grch37LiteGaf):
                                        inputBed.strand)
 	elif createFromJunction:
             self.featureType = 'junction'
+            self.featureDbSource = "calculated"
             self.featureCoordinates = "1,2"
 	    self.featureId = inputLine.id
 	    self.compositeCoordinates = "%s:%d,%d:%s" % (inputLine.chr, inputLine.startPos, 
