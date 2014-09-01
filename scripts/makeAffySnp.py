@@ -20,7 +20,7 @@ args = parser.parse_args()
 db = MySQLdb.connect(host="localhost", db="hg19", read_default_file="~/.my.cnf")
 cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
-entryNumber = args.entryNumber
+entryNumber = int(args.entryNumber)
 
 #
 # Make a dictionary of the old entries.
