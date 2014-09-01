@@ -43,7 +43,7 @@ parser.add_argument("-d", dest="debug", help="display debugging messages",
                     default=False)
 args = parser.parse_args()
 
-entryNumber = args.entryNumber
+entryNumber = int(args.entryNumber)
 
 
 #
@@ -92,7 +92,7 @@ for line in compositeGafFp:
             # feature (i.e. instead of the probe)
             maProbeToCompositeGaf.gene = compositeGaf.gene
             maProbeToCompositeGaf.geneLocus = compositeGaf.geneLocus
-            entryNumber = entryNumber + 1
             maProbeToCompositeGaf.entryNumber = entryNumber
+            entryNumber = entryNumber + 1
             maProbeToCompositeGaf.write(sys.stdout)
 exit(0)

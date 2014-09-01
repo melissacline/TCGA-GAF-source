@@ -79,7 +79,7 @@ parser.add_argument('grch37LiteBed', type=str,
 parser.add_argument('hg19Bed', type=str, 
                     help="Input bed file in hg19 coordinates")
 parser.add_argument("-s", dest="snpTable", help="Table with the latest dbSNP data",
-                    default="snp135")
+                    default="snp138")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",
                     default=0)
 args = parser.parse_args()

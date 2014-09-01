@@ -10,6 +10,7 @@ import Gaf
 parser = argparse.ArgumentParser(description="Create gene, transcript, exon level GAF files from input Gencode GTF file")
 parser.add_argument('inputGtf', type=str,help="Input GTF file")
 parser.add_argument('inputRefSeq', type=str,help="Input file with gencode and RefSeq IDs")
+parser.add_argument('outputdir', type=str,help="Output directory", default='/')
 parser.add_argument('baseName', type=str,help="Base filename such as v4.0 or tmp. Outputs will be gene.genome.<baseName>.gaf, \
 	transcript.genome.<baseName>.gaf and exon.genome.<baseName>.gaf")
 parser.add_argument("-n", dest="entryNumber", help="Initial entry number",default="0")
@@ -107,16 +108,16 @@ class junctionInfo(object):
 	return junct
 
 class OutFiles(object):
-    def __init__(self, baseName):
-        gf=('.').join(['gene','genome',baseName,'gaf'])
-        tf=('.').join(['transcript','genome', baseName,'gaf'])
-        tgf=('.').join(['transcript','gene', baseName,'gaf'])
-        ef=('.').join(['exon','genome', baseName,'gaf'])
-        etf=('.').join(['exon','transcript', baseName,'gaf'])
-        egf=('.').join(['exon','gene', baseName,'gaf'])
-        jf=('.').join(['junction','genome', baseName,'gaf'])
-        jtf=('.').join(['junction','transcript', baseName,'gaf'])
-        jgf=('.').join(['junction','gene', baseName,'gaf'])
+    def __init__(self, baseName, outdir):
+        gf=('/').join([outdir, ('.').join(['gene','genome',baseName,'gaf'])])
+        tf=('/').join([outdir, ('.').join(['transcript','genome', baseName,'gaf'])])
+        tgf=('/').join([outdir, ('.').join(['transcript','gene', baseName,'gaf'])])
+        ef=('/').join([outdir, ('.').join(['exon','genome', baseName,'gaf'])])
+        etf=('/').join([outdir, ('.').join(['exon','transcript', baseName,'gaf'])])
+        egf=('/').join([outdir, ('.').join(['exon','gene', baseName,'gaf'])])
+        jf=('/').join([outdir, ('.').join(['junction','genome', baseName,'gaf'])])
+        jtf=('/').join([outdir, ('.').join(['junction','transcript', baseName,'gaf'])])
+        jgf=('/').join([outdir, ('.').join(['junction','gene', baseName,'gaf'])])
         self.gFile = open(gf, 'w')
         self.tFile = open(tf, 'w')
         self.tgFile = open(tgf, 'w')
@@ -143,7 +144,7 @@ gtfGenes = []	# list of gene IDs
 gtfTranscripts = TranscriptTable()
 curGene = Gene(Transcript=None, isEmpty = True)	# create empty gene object
 
-outputFiles = OutFiles(args.baseName)
+outputFiles = OutFiles(args.baseName, args.outputdir)
 
 entryNumber = int(args.entryNumber)
 junctionNumber = 0

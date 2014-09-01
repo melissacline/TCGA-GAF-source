@@ -3,20 +3,18 @@
 makeMaProbe.py: make the MAprobe-genome GAF records
 
 Usage:
-makeMaProbe.py -n 1000 probes.grch37-lite.bed probes.hg19.bed oldMaProbe.gaf \
-    > maProbe.genome.gaf
+makeMaProbe.py -n 1000 probes.grch37-lite.bed probes.hg19.bed > maProbe.genome.gaf
 
 Description:
 Assemble the data for the MAprobe:genome records.  Get the coordinates from the
-GRCH37-lite bed file.  From the hg19 coordinates, query the gafGeneXref table to
+GRCH37-lite bed file.  Query the gafGeneXref table to
 get any overlapping genes (assembled in a semicolon-delimited list, if there are
 more than one.  Generate a list with one maProbe-genome coordinate pair.  A subsequent
 postprocessing step can combine composite coordinates for probes with more than one
 alignment.
 
-Inputs:
+Input:
 probes.grch37-lite.bed: alignments of the probes in GRCh37-lite coordinates
-probes.hg19.bed: alignments of the probes in hg19 coordinates
 
 Options:
 -n: starting record number (which by default starts at 1 and increments with each

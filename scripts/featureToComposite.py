@@ -35,7 +35,10 @@ for line in featureFp:
         compositesThisFeature = geneToComposite[feat.gene]
         for comp in compositesThisFeature:
             featToComp = Gaf.Gaf()
-            featToComp.featureToComposite(feat, comp)
+            if (feat.featureType == 'exon' and comp.featureType == 'transcript'):
+                featToComp.featureToComposite(feat, comp, fullBlocksOnly=True, debug=False)
+            else:
+                featToComp.featureToComposite(feat, comp, fullBlocksOnly=False, debug=True)
             if len(featToComp.featureCoordinates) > 0:
                 featToComp.entryNumber = entryNumber
                 print featToComp

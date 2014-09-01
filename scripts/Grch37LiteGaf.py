@@ -298,13 +298,13 @@ class GafDbSnp(Grch37LiteGaf):
     coordinate 1-1 and composite coordinate chr15:1000-1000:+, set
     featureCoordinate to 1 and composite coordinate to chr15:1000:+
     """
-    def __init__(self, inputBed, entryNumber=0, createFromBedInput=True):
+    def __init__(self, inputBed, entryNumber=0, createFromBedInput=True, createFromGTF=False):
         super(GafDbSnp, self).__init__(inputBed, entryNumber=entryNumber,
-                                       createFromBedInput=createFromBedInput)
+                                       createFromBedInput=createFromBedInput, createFromGTF=createFromGTF)
         if createFromBedInput:
             self.featureType = "dbSNP"
             self.featureDbSource = "UCSC"
-            self.featureDbVersion = "v135"
+            self.featureDbVersion = "v138"
             self.featureCoordinates = self.singleBaseCoordFixup(self.featureCoordinates)
             self.compositeCoordinates = self.singleBaseCoordFixup(self.compositeCoordinates)
 

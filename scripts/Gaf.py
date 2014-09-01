@@ -320,7 +320,7 @@ class Gaf(object):
             assert len(self.compositeCoordinates) == 0
             self.__init__()
         else:
-            self.entryNumber = feat.entryNumber
+#            self.entryNumber = feat.entryNumber
             self.featureId = feat.featureId
             self.featureType = feat.featureType
             self.featureDbSource = feat.featureDbSource

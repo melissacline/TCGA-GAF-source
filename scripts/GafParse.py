@@ -1,5 +1,7 @@
 """GAF parser"""
 
+import sys, copy
+
 class Transcript(object):
     """Holds transcript objects"""
     def __init__(self, GAFline):
