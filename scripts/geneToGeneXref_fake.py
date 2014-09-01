@@ -1,9 +1,6 @@
 #!/usr/bin/python
 
 import sys, os, re, getopt
-cgiFolder="/hive/users/jeltje/lib"
-if cgiFolder not in sys.path:
-        sys.path.append(cgiFolder)
 from BasicStringStuff import *
 
 usage = sys.argv[0]+""" <gene.genome gaf file>
@@ -27,10 +24,6 @@ except getopt.GetoptError:
     sys.exit(2)
 
 for o, a  in opts:
-#    if o == "-d":
-#        doNotDelete = True
-#    if o == "-c":
-#        cdsOnly = True
     if o == "-h":
         print usage
         sys.exit()
